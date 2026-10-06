@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── Tokens — claro (fonte da verdade) ─────────────────────────────
+   Ficam em @theme para o Tailwind v4 gerar as utilidades (bg-bg,
+   text-primary, border-border…). Redefinir o token no modo escuro troca
+   o tema sem recompilar nada. */
+@theme {
+  --color-bg:               #F5F7F6;
+  --color-surface:          #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-border:           #E0E6E4;
+
+  --color-text:             #0E1513;
+  --color-text-secondary:   #44514D;
+  --color-text-muted:       #63716C;
+
+  /* Verde-azulado da marca. --color-primary é para texto/ícone/borda;
+     --color-primary-solid é o fundo de botões com texto branco (5.4:1). */
+  --color-primary:          #0F766E;
+  --color-primary-subtle:   #E6F4F1;
+  --color-primary-solid:       #0F766E;
+  --color-primary-solid-hover: #115E59;
+
+  /* Amarelo "lápis" para destaques (nunca com texto branco em cima). */
+  --color-accent:           #B45309;
+  --color-accent-subtle:    #FEF6E7;
+
+  --color-success:          #047857;
+  --color-success-subtle:   #ECFDF5;
+  --color-warning:          #B45309;
+  --color-warning-subtle:   #FFFBEB;
+  --color-danger:           #B91C1C;
+  --color-danger-subtle:    #FEF2F2;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ── Escuro — preferência do sistema ─────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg:               #0B1110;
+    --color-surface:          #121A18;
+    --color-surface-elevated: #1A2422;
+    --color-border:           #26332F;
+
+    --color-text:             #EEF3F1;
+    --color-text-secondary:   #B3C0BB;
+    --color-text-muted:       #8E9C97;
+
+    --color-primary:          #5EEAD4;
+    --color-primary-subtle:   #0F2A27;
+
+    --color-accent:           #FBBF24;
+    --color-accent-subtle:    #2A1E05;
+
+    --color-success:          #34D399;
+    --color-success-subtle:   #062A1F;
+    --color-warning:          #FBBF24;
+    --color-warning-subtle:   #2A1E05;
+    --color-danger:           #F87171;
+    --color-danger-subtle:    #2D0A0A;
+  }
+}
+
+/* ── Escuro — escolha manual (vale nos dois sentidos) ────────────── */
+:root[data-theme="dark"] {
+  --color-bg:               #0B1110;
+  --color-surface:          #121A18;
+  --color-surface-elevated: #1A2422;
+  --color-border:           #26332F;
+
+  --color-text:             #EEF3F1;
+  --color-text-secondary:   #B3C0BB;
+  --color-text-muted:       #8E9C97;
+
+  --color-primary:          #5EEAD4;
+  --color-primary-subtle:   #0F2A27;
+
+  --color-accent:           #FBBF24;
+  --color-accent-subtle:    #2A1E05;
+
+  --color-success:          #34D399;
+  --color-success-subtle:   #062A1F;
+  --color-warning:          #FBBF24;
+  --color-warning-subtle:   #2A1E05;
+  --color-danger:           #F87171;
+  --color-danger-subtle:    #2D0A0A;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.surgir {
+  animation: surgir 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surgir {
+    animation: none;
+  }
+}
