@@ -33,6 +33,9 @@
   --color-warning-subtle:   #FFFBEB;
   --color-danger:           #B91C1C;
   --color-danger-subtle:    #FEF2F2;
+  /* Azul: reuniões no calendário (distinto do verde da marca). */
+  --color-info:             #1D4ED8;
+  --color-info-subtle:      #EFF6FF;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -62,6 +65,8 @@
     --color-warning-subtle:   #2A1E05;
     --color-danger:           #F87171;
     --color-danger-subtle:    #2D0A0A;
+    --color-info:             #93C5FD;
+    --color-info-subtle:      #0F1E3A;
   }
 }
 
@@ -88,6 +93,8 @@
   --color-warning-subtle:   #2A1E05;
   --color-danger:           #F87171;
   --color-danger-subtle:    #2D0A0A;
+  --color-info:             #93C5FD;
+  --color-info-subtle:      #0F1E3A;
 }
 
 body {

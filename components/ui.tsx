@@ -4,7 +4,7 @@ import { useId } from "react";
 import { iniciais } from "@/lib/formatar";
 
 type BotaoProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variante?: "primario" | "secundario" | "fantasma" | "perigo";
+  variante?: "primario" | "secundario" | "fantasma" | "perigo" | "perigoSolido";
   carregando?: boolean;
 };
 
@@ -14,6 +14,8 @@ const VARIANTES = {
     "bg-surface border-border text-text hover:bg-primary-subtle border",
   fantasma: "text-text-secondary hover:text-text hover:bg-primary-subtle",
   perigo: "text-danger hover:bg-danger-subtle",
+  // text-surface: branco no tema claro, quase preto no escuro (o vermelho clareia).
+  perigoSolido: "bg-danger text-surface hover:opacity-90",
 };
 
 export function Botao({
@@ -91,9 +93,10 @@ export function Cartao({
   );
 }
 
-const TONS = {
+export const TONS = {
   neutro: "bg-bg text-text-secondary border-border border",
   primario: "bg-primary-subtle text-primary",
+  info: "bg-info-subtle text-info",
   alerta: "bg-warning-subtle text-warning",
   perigo: "bg-danger-subtle text-danger",
   sucesso: "bg-success-subtle text-success",

@@ -3,6 +3,7 @@
 import { ArrowLeft, MessageCircle, Plus, Send, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
+import { useConfirmar } from "@/components/Confirmacao";
 import { Avatar, Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
 import { hora, tempoRelativo } from "@/lib/formatar";
@@ -176,7 +177,11 @@ function ConversaAberta({
           const minha = m.autor?.id === eu.id;
           return (
             <div key={m.id} className={`max-w-[80%] ${minha ? "ml-auto text-right" : ""}`}>
-              {!minha && <p className="text-text-muted mb-1 text-xs">{m.autor?.nome ?? "Usuário removido"}</p>}
+              {!minha && (
+                <p className="text-text-muted mb-1 text-xs">
+                  {m.automatica ? "Escola · mensagem automática" : (m.autor?.nome ?? "Usuário removido")}
+                </p>
+              )}
               <p
                 className={`inline-block rounded-2xl px-3 py-2 text-left text-sm whitespace-pre-line ${
                   minha ? "bg-primary-solid rounded-tr-sm text-white" : "bg-surface border-border text-text rounded-tl-sm border"
@@ -234,6 +239,7 @@ function NovaConversa({
   const [texto, setTexto] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const aceitar = useConfirmar();
 
   const alunoEscolhido = alunoId || alunos.dados?.[0]?.id || "";
   const aluno = alunos.dados?.find((a) => a.id === alunoEscolhido);
@@ -241,6 +247,18 @@ function NovaConversa({
 
   async function iniciar(e: React.FormEvent) {
     e.preventDefault();
+    const responsavel = aluno?.responsaveis?.find((r) => r.id === responsavelEscolhido);
+    const ok = await aceitar({
+      titulo: "Enviar a mensagem?",
+      mensagem: (
+        <>
+          <strong>{assunto}</strong>, sobre {aluno?.nome ?? "o aluno"}
+          {familia ? ", para os professores da turma" : responsavel ? `, para ${responsavel.nome}` : ""}.
+        </>
+      ),
+      confirmar: "Enviar",
+    });
+    if (!ok) return;
     setErro(null);
     setEnviando(true);
     try {

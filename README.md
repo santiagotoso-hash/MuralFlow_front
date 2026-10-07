@@ -1,8 +1,8 @@
-# Escola Conecta — Front
+# MuralFlow — Front
 
 Comunicação entre a escola e as famílias dos alunos: **comunicados com confirmação de leitura**, **agenda escolar** e **mensagens diretas** entre responsáveis e professores.
 
-API: repositório `escola-conecta-back` (precisa estar rodando).
+API: repositório `scholar-day-backend` (precisa estar rodando).
 
 Stack: Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Lucide · porta 3001.
 
@@ -16,4 +16,4 @@ npm install
 npm run dev                 # http://localhost:3001
 ```
 
-Usuários de demonstração: ver o README do `escola-conecta-back`.
+Usuários de demonstração: ver o README do `scholar-day-backend`.

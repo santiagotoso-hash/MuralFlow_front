@@ -59,6 +59,13 @@ export const NOME_PAPEL: Record<Papel, string> = {
   responsavel: "Responsável",
 };
 
+/** Tratamento na saudação do painel ("Bom dia, Pro Carla!"). */
+export const TRATAMENTO: Record<Papel, string> = {
+  admin: "Diretor/a",
+  professor: "Pro",
+  responsavel: "Pai/Mãe",
+};
+
 export const NOME_TURNO: Record<Turno, string> = {
   manha: "Manhã",
   tarde: "Tarde",
@@ -82,6 +89,48 @@ export const NOME_TIPO_EVENTO: Record<TipoEvento, string> = {
   festa: "Festa",
   outro: "Outro",
 };
+
+/** Cor da etiqueta de cada tipo de evento (agenda, calendário, provas). */
+export const TOM_TIPO_EVENTO: Record<TipoEvento, "info" | "alerta" | "perigo" | "sucesso" | "neutro"> = {
+  reuniao: "info",
+  prova: "alerta",
+  passeio: "sucesso",
+  feriado: "perigo",
+  festa: "sucesso",
+  outro: "neutro",
+};
+
+/** "2026-06-20": o dia (no fuso de Brasília) em que o instante cai. */
+export const chaveDia = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });
+
+/** "hoje", "amanhã", "em 5 dias", "há 2 dias" — contando dias de calendário. */
+export function diasAte(iso: string) {
+  const dia = (chave: string) => Date.UTC(...(chave.split("-").map(Number) as [number, number, number]));
+  const dif = Math.round((dia(chaveDia(iso)) - dia(chaveDia(new Date().toISOString()))) / 86_400_000);
+  if (dif === 0) return "hoje";
+  if (dif === 1) return "amanhã";
+  if (dif === -1) return "ontem";
+  return dif > 0 ? `em ${dif} dias` : `há ${-dif} dias`;
+}
+
+/** "2016-03-14" → "14 de março". */
+export const dataAniversario = (data: string) =>
+  new Date(`${data.slice(0, 10)}T12:00:00Z`).toLocaleDateString("pt-BR", { day: "numeric", month: "long", timeZone: "UTC" });
+
+/** Hoje (em Brasília) é aniversário? Quem nasceu em 29/02 comemora em 28/02 nos outros anos. */
+export function aniversarioHoje(data: string | null) {
+  if (!data) return false;
+  const hoje = chaveDia(new Date().toISOString());
+  const [ano, mmdd] = [Number(hoje.slice(0, 4)), hoje.slice(5)];
+  const bissexto = (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0;
+  const dia = data.slice(5, 10);
+  return dia === mmdd || (dia === "02-29" && mmdd === "02-28" && !bissexto);
+}
+
+/** Nota com vírgula: 7.5 → "7,5". */
+export const nota = (valor: number) =>
+  valor.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 
 /** "2026-06-20T14:00" (input datetime-local) → ISO com fuso de Brasília. */
 export const localParaIso = (valor: string) =>

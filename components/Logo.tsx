@@ -7,7 +7,7 @@ export default function Logo({ href = "/" }: { href?: string }) {
       <span className="bg-primary-solid rounded-lg p-1.5 text-white">
         <School className="size-5" aria-hidden />
       </span>
-      Escola Conecta
+      MuralFlow
     </Link>
   );
 }

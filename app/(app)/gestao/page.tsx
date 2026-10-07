@@ -3,6 +3,7 @@
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
+import { type PedidoConfirmacao, useConfirmar } from "@/components/Confirmacao";
 import { Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta } from "@/components/ui";
 import { api } from "@/lib/api";
 import { NOME_PAPEL, NOME_TURNO } from "@/lib/formatar";
@@ -118,7 +119,9 @@ function Checkboxes({
 function useEnvio(aoConcluir: () => void) {
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  async function enviar(fn: () => Promise<unknown>) {
+  const confirmar = useConfirmar();
+  async function enviar(pedido: PedidoConfirmacao, fn: () => Promise<unknown>) {
+    if (!(await confirmar(pedido))) return;
     setErro(null);
     setEnviando(true);
     try {
@@ -147,9 +150,32 @@ function AbaUsuarios() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const confirmar = useConfirmar();
+  const [erroAtivo, setErroAtivo] = useState<string | null>(null);
+
   async function alternarAtivo(u: Usuario) {
-    await api(`/usuarios/${u.id}`, { method: "PATCH", body: { ativo: !u.ativo } });
-    usuarios.recarregar();
+    const ok = await confirmar(
+      u.ativo
+        ? {
+            titulo: `Desativar ${u.nome}?`,
+            mensagem: `${u.email} não vai mais conseguir entrar no app. Você pode reativar depois.`,
+            confirmar: "Desativar",
+            perigo: true,
+          }
+        : {
+            titulo: `Reativar ${u.nome}?`,
+            mensagem: `${u.email} volta a conseguir entrar no app.`,
+            confirmar: "Reativar",
+          },
+    );
+    if (!ok) return;
+    setErroAtivo(null);
+    try {
+      await api(`/usuarios/${u.id}`, { method: "PATCH", body: { ativo: !u.ativo } });
+      usuarios.recarregar();
+    } catch (e) {
+      setErroAtivo((e as Error).message);
+    }
   }
 
   return (
@@ -158,7 +184,14 @@ function AbaUsuarios() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void enviar(() => api("/usuarios", { method: "POST", body: { ...form, telefone: form.telefone || undefined } }));
+            void enviar(
+              {
+                titulo: `Cadastrar ${form.nome}?`,
+                mensagem: `${NOME_PAPEL[form.papel]} · ${form.email}`,
+                confirmar: "Cadastrar",
+              },
+              () => api("/usuarios", { method: "POST", body: { ...form, telefone: form.telefone || undefined } }),
+            );
           }}
           className="grid gap-4 sm:grid-cols-2"
         >
@@ -189,6 +222,11 @@ function AbaUsuarios() {
       </Formulario>
 
       {usuarios.erro && <Erro mensagem={usuarios.erro} />}
+      {erroAtivo && (
+        <div className="mb-4">
+          <Erro mensagem={erroAtivo} />
+        </div>
+      )}
       {usuarios.carregando && <Carregando />}
       {usuarios.dados && (
         <Cartao className="overflow-x-auto">
@@ -252,7 +290,7 @@ function AbaTurmas() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void enviar(() =>
+            void enviar({ titulo: `Criar a turma ${nome}?`, mensagem: `${anoLetivo} · ${NOME_TURNO[turno]}`, confirmar: "Criar turma" }, () =>
               api("/turmas", { method: "POST", body: { nome, anoLetivo: Number(anoLetivo), turno, professorIds } }),
             );
           }}
@@ -320,7 +358,7 @@ function AbaAlunos() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void enviar(() =>
+            void enviar({ titulo: `Cadastrar o aluno ${form.nome}?`, confirmar: "Cadastrar" }, () =>
               api("/alunos", {
                 method: "POST",
                 body: {
