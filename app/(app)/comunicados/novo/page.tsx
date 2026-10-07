@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
+import { useConfirmar } from "@/components/Confirmacao";
 import { Botao, Cabecalho, Campo, Cartao, Erro } from "@/components/ui";
 import { api } from "@/lib/api";
 import { NOME_CATEGORIA } from "@/lib/formatar";
@@ -22,12 +23,25 @@ export default function NovoComunicado() {
   const [exigeCiencia, setExigeCiencia] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const aceitar = useConfirmar();
 
   // Professor não publica para a escola inteira: pré-seleciona a 1ª turma.
   const turmaEscolhida = turmaId || (admin ? "" : (turmas.dados?.[0]?.id ?? ""));
 
   async function publicar(e: React.FormEvent) {
     e.preventDefault();
+    const turma = turmas.dados?.find((t) => t.id === turmaEscolhida);
+    const ok = await aceitar({
+      titulo: "Publicar o comunicado?",
+      mensagem: (
+        <>
+          <strong>{titulo}</strong> vai para {turma ? <>as famílias do <strong>{turma.nome}</strong></> : <>todas as famílias da <strong>escola inteira</strong></>}, que também recebem
+          um aviso por e-mail.
+        </>
+      ),
+      confirmar: "Publicar",
+    });
+    if (!ok) return;
     setErro(null);
     setEnviando(true);
     try {

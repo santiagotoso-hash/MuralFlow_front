@@ -135,7 +135,7 @@ export default function Inicio() {
       </main>
 
       <footer className="border-border text-text-muted border-t py-8 text-center text-sm">
-        © {new Date().getFullYear()} Escola Conecta
+        © {new Date().getFullYear()} MuralFlow
       </footer>
     </div>
   );

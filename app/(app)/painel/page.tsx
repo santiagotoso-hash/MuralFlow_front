@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Cake,
   CalendarDays,
   ChevronRight,
   Megaphone,
@@ -10,8 +11,8 @@ import {
 import Link from "next/link";
 import { useSessao } from "@/components/AuthProvider";
 import { Cartao, Erro, Etiqueta } from "@/components/ui";
-import { dataCurta, hora, NOME_CATEGORIA, NOME_TIPO_EVENTO, tempoRelativo } from "@/lib/formatar";
-import type { Comunicado, Conversa, Evento } from "@/lib/tipos";
+import { aniversarioHoje, dataCurta, diasAte, hora, NOME_CATEGORIA, NOME_TIPO_EVENTO, tempoRelativo, TRATAMENTO } from "@/lib/formatar";
+import type { Aluno, Comunicado, Conversa, Evento } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 function saudacao() {
@@ -24,12 +25,17 @@ export default function Painel() {
   const comunicados = useApi<Comunicado[]>("/comunicados");
   const eventos = useApi<Evento[]>("/eventos");
   const conversas = useApi<Conversa[]>("/conversas");
+  // Equipe: alunos das suas turmas, para os aniversariantes do dia.
+  const alunos = useApi<Aluno[]>(usuario && usuario.papel !== "responsavel" ? "/alunos" : null);
 
   if (!usuario) return null;
   const familia = usuario.papel === "responsavel";
   const pendentes = (comunicados.dados ?? []).filter((c) => c.exigeCiencia && !c.ciente);
   const naoLidas = (conversas.dados ?? []).filter((c) => c.naoLida);
   const erro = comunicados.erro ?? eventos.erro ?? conversas.erro;
+  const aniversariantes = (alunos.dados ?? []).filter((a) => aniversarioHoje(a.dataNascimento));
+  const provas = (eventos.dados ?? []).filter((e) => e.tipo === "prova");
+  const outrosEventos = (eventos.dados ?? []).filter((e) => e.tipo !== "prova");
 
   const resumo = [
     familia
@@ -37,7 +43,7 @@ export default function Painel() {
           href: "/comunicados",
           icone: Megaphone,
           valor: pendentes.length,
-          rotulo: pendentes.length === 1 ? "comunicado aguarda sua ciência" : "comunicados aguardam sua ciência",
+          rotulo: pendentes.length === 1 ? "comunicado aguarda sua confirmação" : "comunicados aguardam sua confirmação",
         }
       : {
           href: "/comunicados",
@@ -54,7 +60,7 @@ export default function Painel() {
     {
       href: "/agenda",
       icone: CalendarDays,
-      valor: eventos.dados?.length ?? 0,
+      valor: outrosEventos.length,
       rotulo: "próximos eventos",
     },
   ];
@@ -64,7 +70,7 @@ export default function Painel() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-text text-2xl font-bold">
-            {saudacao()}, {usuario.nome.split(" ")[0]}!
+            {saudacao()}, {TRATAMENTO[usuario.papel]} {usuario.nome.split(" ")[0]}!
           </h1>
           {familia && usuario.filhos && usuario.filhos.length > 0 && (
             <p className="text-text-secondary mt-1 text-sm">
@@ -87,6 +93,29 @@ export default function Painel() {
       </div>
 
       {erro && <Erro mensagem={erro} />}
+
+      {aniversariantes.length > 0 && (
+        <Cartao className="border-success bg-success-subtle flex items-start gap-4 p-5">
+          <span className="bg-surface text-success rounded-lg p-2.5">
+            <Cake className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-text font-semibold">
+              {aniversariantes.length === 1 ? "Aniversariante de hoje" : "Aniversariantes de hoje"}
+            </h2>
+            <ul className="text-text-secondary mt-1 text-sm">
+              {aniversariantes.map((a) => (
+                <li key={a.id}>
+                  <strong className="text-text">{a.nome}</strong>
+                  {a.dataNascimento && ` · ${new Date().getFullYear() - Number(a.dataNascimento.slice(0, 4))} anos`}
+                  {a.turma && ` · ${a.turma.nome}`}
+                </li>
+              ))}
+            </ul>
+            <p className="text-text-muted mt-1 text-xs">A família recebe uma mensagem de parabéns da escola (a partir das 7h).</p>
+          </div>
+        </Cartao>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         {resumo.map(({ href, icone: Icone, valor, rotulo }) => (
@@ -133,6 +162,38 @@ export default function Painel() {
           </ul>
         </Cartao>
 
+        <div className="space-y-6">
+        <Cartao>
+          <div className="border-border flex items-center justify-between border-b px-5 py-4">
+            <h2 className="text-text font-semibold">Próximas provas</h2>
+            <Link href="/provas" className="text-primary text-sm font-medium">
+              Ver provas
+            </Link>
+          </div>
+          <ul className="divide-border divide-y">
+            {provas.slice(0, 3).map((p) => (
+              <li key={p.id}>
+                <Link href="/provas" className="hover:bg-bg flex items-center gap-4 px-5 py-3">
+                  <div className="bg-warning-subtle text-warning w-14 shrink-0 rounded-lg py-1.5 text-center text-xs font-semibold uppercase">
+                    {dataCurta(p.inicio).replace(".", "")}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-text truncate text-sm font-medium">{p.disciplina ?? p.titulo}</p>
+                    <p className="text-text-muted truncate text-xs">
+                      {diasAte(p.inicio)}
+                      {p.turma ? ` · ${p.turma.nome}` : ""}
+                      {p.descricao ? ` · ${p.descricao}` : ""}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+            {eventos.dados && provas.length === 0 && (
+              <li className="text-text-muted px-5 py-6 text-sm">Nenhuma prova marcada.</li>
+            )}
+          </ul>
+        </Cartao>
+
         <Cartao>
           <div className="border-border flex items-center justify-between border-b px-5 py-4">
             <h2 className="text-text font-semibold">Próximos eventos</h2>
@@ -141,7 +202,7 @@ export default function Painel() {
             </Link>
           </div>
           <ul className="divide-border divide-y">
-            {(eventos.dados ?? []).slice(0, 4).map((e) => (
+            {outrosEventos.slice(0, 4).map((e) => (
               <li key={e.id} className="flex items-center gap-4 px-5 py-3">
                 <div className="bg-primary-subtle text-primary w-14 shrink-0 rounded-lg py-1.5 text-center text-xs font-semibold uppercase">
                   {dataCurta(e.inicio).replace(".", "")}
@@ -155,11 +216,12 @@ export default function Painel() {
                 </div>
               </li>
             ))}
-            {eventos.dados?.length === 0 && (
+            {eventos.dados && outrosEventos.length === 0 && (
               <li className="text-text-muted px-5 py-6 text-sm">Nada marcado por enquanto.</li>
             )}
           </ul>
         </Cartao>
+        </div>
       </div>
     </div>
   );

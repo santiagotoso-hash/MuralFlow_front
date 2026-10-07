@@ -4,6 +4,7 @@ import { Check, Megaphone, PenSquare, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
+import { useConfirmar } from "@/components/Confirmacao";
 import { Botao, Cabecalho, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
 import { dataHora, NOME_CATEGORIA } from "@/lib/formatar";
@@ -16,6 +17,7 @@ export default function Comunicados() {
   const [filtro, setFiltro] = useState<"todos" | "pendentes">("todos");
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState<string | null>(null);
+  const aceitar = useConfirmar();
 
   if (!usuario) return null;
   const familia = usuario.papel === "responsavel";
@@ -23,6 +25,13 @@ export default function Comunicados() {
   const lista = filtro === "pendentes" ? pendentes : (dados ?? []);
 
   async function confirmar(id: string) {
+    const c = dados?.find((x) => x.id === id);
+    const ok = await aceitar({
+      titulo: "Confirmar que você leu?",
+      mensagem: c ? <>A escola vai ver que você está ciente de <strong>{c.titulo}</strong>. Isso não pode ser desfeito.</> : undefined,
+      confirmar: "Estou ciente",
+    });
+    if (!ok) return;
     setConfirmando(id);
     setAcaoErro(null);
     try {
@@ -36,7 +45,13 @@ export default function Comunicados() {
   }
 
   async function remover(c: Comunicado) {
-    if (!window.confirm(`Remover o comunicado "${c.titulo}"?`)) return;
+    const ok = await aceitar({
+      titulo: "Remover este comunicado?",
+      mensagem: <>“{c.titulo}” some para todas as famílias, junto com as confirmações de leitura. Isso não pode ser desfeito.</>,
+      confirmar: "Remover",
+      perigo: true,
+    });
+    if (!ok) return;
     setAcaoErro(null);
     try {
       await api(`/comunicados/${c.id}`, { method: "DELETE" });

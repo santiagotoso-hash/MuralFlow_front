@@ -2,17 +2,22 @@
 
 import {
   CalendarDays,
+  ClipboardList,
+  Ellipsis,
+  GraduationCap,
+  HeartPulse,
   House,
   LogOut,
   Megaphone,
   MessageCircle,
+  Presentation,
   Settings,
   UserRound,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
 import { Avatar, Carregando } from "@/components/ui";
@@ -32,11 +37,15 @@ function menu(papel: Papel): ItemMenu[] {
     { href: "/comunicados", rotulo: "Comunicados", icone: Megaphone },
     { href: "/agenda", rotulo: "Agenda", icone: CalendarDays },
     { href: "/mensagens", rotulo: "Mensagens", icone: MessageCircle },
+    { href: "/provas", rotulo: "Provas", icone: ClipboardList },
+    { href: "/boletim", rotulo: "Boletim", icone: GraduationCap },
+    { href: "/saude", rotulo: "Saúde", icone: HeartPulse },
     {
       href: "/alunos",
       rotulo: papel === "responsavel" ? "Meus filhos" : "Alunos",
       icone: Users,
     },
+    { href: "/professores", rotulo: "Professores", icone: Presentation, papeis: ["admin", "professor"] },
     { href: "/gestao", rotulo: "Gestão", icone: Settings, papeis: ["admin"] },
     { href: "/perfil", rotulo: "Perfil", icone: UserRound },
   ];
@@ -47,6 +56,7 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
   const { usuario, carregando, sair } = useSessao();
   const router = useRouter();
   const pathname = usePathname();
+  const [maisAberto, setMaisAberto] = useState(false);
 
   useEffect(() => {
     if (!carregando && !usuario) router.replace("/entrar");
@@ -62,6 +72,11 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
 
   const itens = menu(usuario.papel);
   const ativo = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  // Celular: 4 atalhos na barra inferior; o resto (menos Gestão e Perfil,
+  // que ficam no topo) vai para "Mais".
+  const barra = itens.slice(0, 4);
+  const mais = itens.slice(4).filter((i) => i.href !== "/gestao" && i.href !== "/perfil");
+  const maisAtivo = mais.some((i) => ativo(i.href));
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -125,15 +140,47 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
         {children}
       </main>
 
-      {/* ── Navegação inferior (celular): só os 5 primeiros itens ── */}
+      {/* ── "Mais" (celular): as seções que não cabem na barra ── */}
+      {maisAberto && (
+        <>
+          <button
+            type="button"
+            aria-label="Fechar menu"
+            onClick={() => setMaisAberto(false)}
+            className="fixed inset-0 z-10 bg-black/30 lg:hidden"
+          />
+          <div
+            id="menu-mais"
+            className="bg-surface border-border surgir fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 rounded-xl border p-2 shadow-lg lg:hidden"
+          >
+            {mais.map(({ href, rotulo, icone: Icone }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMaisAberto(false)}
+                aria-current={ativo(href) ? "page" : undefined}
+                className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium ${
+                  ativo(href) ? "bg-primary-subtle text-primary" : "text-text hover:bg-bg"
+                }`}
+              >
+                <Icone className="size-5" aria-hidden />
+                {rotulo}
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Navegação inferior (celular) ── */}
       <nav
         aria-label="Menu principal"
-        className="bg-surface border-border fixed inset-x-0 bottom-0 z-10 grid grid-cols-5 border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="bg-surface border-border fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        {itens.slice(0, 5).map(({ href, rotulo, icone: Icone }) => (
+        {barra.map(({ href, rotulo, icone: Icone }) => (
           <Link
             key={href}
             href={href}
+            onClick={() => setMaisAberto(false)}
             aria-current={ativo(href) ? "page" : undefined}
             className={`flex flex-col items-center gap-1 py-2 text-[11px] font-medium ${
               ativo(href) ? "text-primary" : "text-text-muted"
@@ -143,6 +190,18 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
             <span className="truncate">{rotulo}</span>
           </Link>
         ))}
+        <button
+          type="button"
+          onClick={() => setMaisAberto((v) => !v)}
+          aria-expanded={maisAberto}
+          aria-controls="menu-mais"
+          className={`flex cursor-pointer flex-col items-center gap-1 py-2 text-[11px] font-medium ${
+            maisAberto || maisAtivo ? "text-primary" : "text-text-muted"
+          }`}
+        >
+          <Ellipsis className="size-5" aria-hidden />
+          <span>Mais</span>
+        </button>
       </nav>
     </div>
   );

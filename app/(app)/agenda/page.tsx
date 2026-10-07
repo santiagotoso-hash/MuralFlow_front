@@ -1,22 +1,18 @@
 "use client";
 
-import { CalendarDays, Clock, MapPin, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { CalendarDays, List, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
-import { Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
-import { api } from "@/lib/api";
-import { diaDaSemana, hora, localParaIso, NOME_TIPO_EVENTO } from "@/lib/formatar";
-import type { Evento, TipoEvento, Turma } from "@/lib/tipos";
+import { useConfirmar } from "@/components/Confirmacao";
+import { Calendario } from "@/components/Calendario";
+import { CartaoEvento, NovoEvento, removerEvento } from "@/components/eventos";
+import { Botao, Cabecalho, Carregando, Cartao, Erro, Vazio } from "@/components/ui";
+import { diaDaSemana } from "@/lib/formatar";
+import type { Evento } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
-const TOM_TIPO: Record<TipoEvento, "primario" | "alerta" | "perigo" | "sucesso" | "neutro"> = {
-  reuniao: "primario",
-  prova: "alerta",
-  passeio: "sucesso",
-  feriado: "perigo",
-  festa: "sucesso",
-  outro: "neutro",
-};
+type Visao = "calendario" | "lista";
+const CHAVE_VISAO = "escola-conecta:agenda-visao";
 
 /** Agrupa por dia (no fuso de Brasília), mantendo a ordem cronológica. */
 function porDia(eventos: Evento[]) {
@@ -30,18 +26,35 @@ function porDia(eventos: Evento[]) {
 
 export default function Agenda() {
   const { usuario } = useSessao();
-  const { dados, erro, carregando, recarregar, setDados } = useApi<Evento[]>("/eventos");
+  // A área logada só renderiza no navegador (depende da sessão), então dá
+  // para ler o localStorage já no estado inicial.
+  const [visao, setVisao] = useState<Visao>(() => {
+    try {
+      return localStorage.getItem(CHAVE_VISAO) === "lista" ? "lista" : "calendario";
+    } catch {
+      return "calendario";
+    }
+  });
+  const [versao, setVersao] = useState(0);
   const [criando, setCriando] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
+  const aceitar = useConfirmar();
 
   if (!usuario) return null;
   const equipe = usuario.papel !== "responsavel";
 
-  async function remover(e: Evento) {
-    if (!window.confirm(`Remover "${e.titulo}" da agenda?`)) return;
+  function trocarVisao(v: Visao) {
+    setVisao(v);
     try {
-      await api(`/eventos/${e.id}`, { method: "DELETE" });
-      setDados((atual) => atual?.filter((x) => x.id !== e.id) ?? null);
+      localStorage.setItem(CHAVE_VISAO, v);
+    } catch {
+      /* ignora */
+    }
+  }
+
+  async function remover(e: Evento) {
+    try {
+      if (await removerEvento(e, aceitar)) setVersao((v) => v + 1);
     } catch (err) {
       setAcaoErro((err as Error).message);
     }
@@ -51,15 +64,37 @@ export default function Agenda() {
     <>
       <Cabecalho
         titulo="Agenda"
-        descricao="Reuniões, provas, passeios e datas importantes."
+        descricao="Provas, feriados, reuniões, passeios e todas as datas da escola."
         acao={
-          equipe &&
-          !criando && (
-            <Botao onClick={() => setCriando(true)}>
-              <Plus className="size-4" aria-hidden />
-              Novo evento
-            </Botao>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="border-border bg-surface inline-flex rounded-lg border p-0.5" role="group" aria-label="Modo de exibição">
+              {(
+                [
+                  ["calendario", "Calendário", CalendarDays],
+                  ["lista", "Lista", List],
+                ] as const
+              ).map(([v, rotulo, Icone]) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={visao === v}
+                  onClick={() => trocarVisao(v)}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
+                    visao === v ? "bg-primary-subtle text-primary" : "text-text-secondary hover:text-text"
+                  }`}
+                >
+                  <Icone className="size-4" aria-hidden />
+                  {rotulo}
+                </button>
+              ))}
+            </div>
+            {equipe && !criando && (
+              <Botao onClick={() => setCriando(true)}>
+                <Plus className="size-4" aria-hidden />
+                Novo evento
+              </Botao>
+            )}
+          </div>
         }
       />
 
@@ -69,168 +104,54 @@ export default function Agenda() {
           aoFechar={() => setCriando(false)}
           aoCriar={() => {
             setCriando(false);
-            recarregar();
+            setVersao((v) => v + 1);
           }}
         />
       )}
 
+      {acaoErro && (
+        <div className="mb-4">
+          <Erro mensagem={acaoErro} />
+        </div>
+      )}
+
+      {visao === "calendario" ? (
+        <Calendario versao={versao} aoRemover={equipe ? remover : undefined} />
+      ) : (
+        <ListaEventos versao={versao} aoRemover={equipe ? remover : undefined} />
+      )}
+    </>
+  );
+}
+
+/** Próximos eventos, agrupados por dia. */
+function ListaEventos({ versao, aoRemover }: { versao: number; aoRemover?: (e: Evento) => void }) {
+  const { dados, erro, carregando, recarregar } = useApi<Evento[]>("/eventos");
+  useEffect(() => {
+    if (versao) recarregar();
+  }, [versao, recarregar]);
+
+  return (
+    <>
       {erro && <Erro mensagem={erro} />}
-      {acaoErro && <div className="mb-4"><Erro mensagem={acaoErro} /></div>}
       {carregando && <Carregando />}
       {dados?.length === 0 && (
         <Cartao>
           <Vazio icone={CalendarDays} titulo="Nada marcado por enquanto" />
         </Cartao>
       )}
-
       <div className="space-y-8">
         {porDia(dados ?? []).map(([dia, eventos]) => (
           <section key={dia}>
             <h2 className="text-text-secondary mb-3 text-sm font-semibold first-letter:uppercase">{dia}</h2>
             <div className="space-y-3">
               {eventos.map((e) => (
-                <Cartao key={e.id} className="flex gap-4 p-4">
-                  <div className="text-primary w-14 shrink-0 pt-0.5 text-sm font-semibold">{hora(e.inicio)}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-text font-semibold">{e.titulo}</h3>
-                      <Etiqueta tom={TOM_TIPO[e.tipo]}>{NOME_TIPO_EVENTO[e.tipo]}</Etiqueta>
-                      <Etiqueta>{e.turma ? e.turma.nome : "Escola inteira"}</Etiqueta>
-                    </div>
-                    {e.descricao && <p className="text-text-secondary mt-1 text-sm">{e.descricao}</p>}
-                    <div className="text-text-muted mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                      {e.fim && (
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="size-3.5" aria-hidden />
-                          até {hora(e.fim)}
-                        </span>
-                      )}
-                      {e.local && (
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="size-3.5" aria-hidden />
-                          {e.local}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {equipe && (
-                    <button
-                      type="button"
-                      onClick={() => remover(e)}
-                      aria-label={`Remover ${e.titulo}`}
-                      className="text-text-muted hover:text-danger h-fit cursor-pointer rounded-lg p-2"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  )}
-                </Cartao>
+                <CartaoEvento key={e.id} evento={e} aoRemover={aoRemover} />
               ))}
             </div>
           </section>
         ))}
       </div>
     </>
-  );
-}
-
-function NovoEvento({
-  admin,
-  aoFechar,
-  aoCriar,
-}: {
-  admin: boolean;
-  aoFechar: () => void;
-  aoCriar: () => void;
-}) {
-  const turmas = useApi<Turma[]>("/turmas");
-  const [form, setForm] = useState({
-    titulo: "",
-    tipo: "reuniao" as TipoEvento,
-    inicio: "",
-    fim: "",
-    local: "",
-    descricao: "",
-    turmaId: "",
-  });
-  const [erro, setErro] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
-  const campo = (nome: keyof typeof form) => ({
-    value: form[nome],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-      setForm((f) => ({ ...f, [nome]: e.target.value })),
-  });
-  const turmaId = form.turmaId || (admin ? "" : (turmas.dados?.[0]?.id ?? ""));
-
-  async function salvar(e: React.FormEvent) {
-    e.preventDefault();
-    setErro(null);
-    setEnviando(true);
-    try {
-      await api("/eventos", {
-        method: "POST",
-        body: {
-          titulo: form.titulo,
-          tipo: form.tipo,
-          inicio: localParaIso(form.inicio),
-          fim: form.fim ? localParaIso(form.fim) : undefined,
-          local: form.local || undefined,
-          descricao: form.descricao || undefined,
-          turmaId: turmaId || undefined,
-        },
-      });
-      aoCriar();
-    } catch (err) {
-      setErro((err as Error).message);
-      setEnviando(false);
-    }
-  }
-
-  return (
-    <Cartao className="surgir mb-8 p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-text font-semibold">Novo evento</h2>
-        <button type="button" onClick={aoFechar} aria-label="Fechar" className="text-text-muted hover:text-text cursor-pointer rounded-lg p-1">
-          <X className="size-5" />
-        </button>
-      </div>
-      <form onSubmit={salvar} className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <Campo rotulo="Título" required {...campo("titulo")} />
-        </div>
-        <Campo tipo="select" rotulo="Tipo" {...campo("tipo")}>
-          {Object.entries(NOME_TIPO_EVENTO).map(([v, n]) => (
-            <option key={v} value={v}>
-              {n}
-            </option>
-          ))}
-        </Campo>
-        <Campo tipo="select" rotulo="Para quem" {...campo("turmaId")} value={turmaId}>
-          {admin && <option value="">Escola inteira</option>}
-          {turmas.dados?.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.nome}
-            </option>
-          ))}
-        </Campo>
-        <Campo rotulo="Início" type="datetime-local" required {...campo("inicio")} />
-        <Campo rotulo="Término (opcional)" type="datetime-local" {...campo("fim")} />
-        <div className="sm:col-span-2">
-          <Campo rotulo="Local (opcional)" {...campo("local")} />
-        </div>
-        <div className="sm:col-span-2">
-          <Campo tipo="textarea" rotulo="Descrição (opcional)" rows={3} {...campo("descricao")} />
-        </div>
-        {erro && (
-          <div className="sm:col-span-2">
-            <Erro mensagem={erro} />
-          </div>
-        )}
-        <div className="sm:col-span-2">
-          <Botao type="submit" carregando={enviando}>
-            Salvar evento
-          </Botao>
-        </div>
-      </form>
-    </Cartao>
   );
 }
