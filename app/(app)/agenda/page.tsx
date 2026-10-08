@@ -1,27 +1,51 @@
 "use client";
 
-import { CalendarDays, List, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CalendarDays, CalendarSync, List, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
 import { Calendario } from "@/components/Calendario";
-import { CartaoEvento, NovoEvento, removerEvento } from "@/components/eventos";
+import { CartaoAniversario, CartaoEvento, NovoEvento, removerEvento } from "@/components/eventos";
+import { SincronizarAgenda } from "@/components/SincronizarAgenda";
 import { Botao, Cabecalho, Carregando, Cartao, Erro, Vazio } from "@/components/ui";
-import { diaDaSemana } from "@/lib/formatar";
-import type { Evento } from "@/lib/tipos";
+import { aniversariosNoAno } from "@/lib/aniversarios";
+import { chaveDia, diaDaSemana } from "@/lib/formatar";
+import type { Aniversario, Evento } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 type Visao = "calendario" | "lista";
 const CHAVE_VISAO = "escola-conecta:agenda-visao";
 
-/** Agrupa por dia (no fuso de Brasília), mantendo a ordem cronológica. */
-function porDia(eventos: Evento[]) {
-  const grupos = new Map<string, Evento[]>();
-  for (const e of eventos) {
-    const dia = diaDaSemana(e.inicio);
-    grupos.set(dia, [...(grupos.get(dia) ?? []), e]);
+/** Na lista, só os aniversários que estão chegando (não o ano inteiro). */
+const DIAS_DE_ANIVERSARIOS = 30;
+
+type ItemLista = { chave: string } & (
+  | { tipo: "evento"; evento: Evento }
+  | { tipo: "aniversario"; aniversario: Aniversario }
+);
+
+/**
+ * Eventos e aniversários dos próximos dias, agrupados por dia (no fuso de
+ * Brasília) em ordem cronológica; no mesmo dia, aniversários primeiro.
+ */
+function porDia(eventos: Evento[], aniversarios: Aniversario[]) {
+  const hoje = chaveDia(new Date().toISOString());
+  const limite = new Date(Date.parse(`${hoje}T00:00:00Z`) + DIAS_DE_ANIVERSARIOS * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const ano = Number(hoje.slice(0, 4));
+  const itens: ItemLista[] = eventos.map((e) => ({ chave: chaveDia(e.inicio), tipo: "evento", evento: e }));
+  for (const a of [ano, ano + 1]) {
+    for (const [chave, lista] of aniversariosNoAno(aniversarios, a)) {
+      if (chave < hoje || chave > limite) continue;
+      for (const aniversario of lista) itens.push({ chave, tipo: "aniversario", aniversario });
+    }
   }
-  return [...grupos.entries()];
+  itens.sort((x, y) => x.chave.localeCompare(y.chave) || (x.tipo === "aniversario" ? -1 : 0) - (y.tipo === "aniversario" ? -1 : 0));
+
+  const grupos = new Map<string, ItemLista[]>();
+  for (const i of itens) grupos.set(i.chave, [...(grupos.get(i.chave) ?? []), i]);
+  return [...grupos.entries()].map(([chave, lista]) => [diaDaSemana(`${chave}T12:00:00-03:00`), lista] as const);
 }
 
 export default function Agenda() {
@@ -37,6 +61,7 @@ export default function Agenda() {
   });
   const [versao, setVersao] = useState(0);
   const [criando, setCriando] = useState(false);
+  const [sincronizando, setSincronizando] = useState(false);
   const [acaoErro, setAcaoErro] = useState<string | null>(null);
   const aceitar = useConfirmar();
 
@@ -64,7 +89,7 @@ export default function Agenda() {
     <>
       <Cabecalho
         titulo="Agenda"
-        descricao="Provas, feriados, reuniões, passeios e todas as datas da escola."
+        descricao="Provas, feriados, reuniões, passeios, aniversários e todas as datas da escola."
         acao={
           <div className="flex flex-wrap items-center gap-2">
             <div className="border-border bg-surface inline-flex rounded-lg border p-0.5" role="group" aria-label="Modo de exibição">
@@ -88,6 +113,12 @@ export default function Agenda() {
                 </button>
               ))}
             </div>
+            {!sincronizando && (
+              <Botao variante="secundario" onClick={() => setSincronizando(true)}>
+                <CalendarSync className="size-4" aria-hidden />
+                Google Calendar
+              </Botao>
+            )}
             {equipe && !criando && (
               <Botao onClick={() => setCriando(true)}>
                 <Plus className="size-4" aria-hidden />
@@ -97,6 +128,8 @@ export default function Agenda() {
           </div>
         }
       />
+
+      {sincronizando && <SincronizarAgenda aoFechar={() => setSincronizando(false)} />}
 
       {criando && (
         <NovoEvento
@@ -124,30 +157,36 @@ export default function Agenda() {
   );
 }
 
-/** Próximos eventos, agrupados por dia. */
+/** Próximos eventos (e aniversários do próximo mês), agrupados por dia. */
 function ListaEventos({ versao, aoRemover }: { versao: number; aoRemover?: (e: Evento) => void }) {
   const { dados, erro, carregando, recarregar } = useApi<Evento[]>("/eventos");
+  const aniversarios = useApi<Aniversario[]>("/eventos/aniversarios");
   useEffect(() => {
     if (versao) recarregar();
   }, [versao, recarregar]);
+  const grupos = useMemo(() => porDia(dados ?? [], aniversarios.dados ?? []), [dados, aniversarios.dados]);
 
   return (
     <>
-      {erro && <Erro mensagem={erro} />}
+      {(erro ?? aniversarios.erro) && <Erro mensagem={(erro ?? aniversarios.erro)!} />}
       {carregando && <Carregando />}
-      {dados?.length === 0 && (
+      {dados && grupos.length === 0 && (
         <Cartao>
           <Vazio icone={CalendarDays} titulo="Nada marcado por enquanto" />
         </Cartao>
       )}
       <div className="space-y-8">
-        {porDia(dados ?? []).map(([dia, eventos]) => (
+        {grupos.map(([dia, itens]) => (
           <section key={dia}>
             <h2 className="text-text-secondary mb-3 text-sm font-semibold first-letter:uppercase">{dia}</h2>
             <div className="space-y-3">
-              {eventos.map((e) => (
-                <CartaoEvento key={e.id} evento={e} aoRemover={aoRemover} />
-              ))}
+              {itens.map((i) =>
+                i.tipo === "aniversario" ? (
+                  <CartaoAniversario key={i.aniversario.id} aniversario={i.aniversario} />
+                ) : (
+                  <CartaoEvento key={i.evento.id} evento={i.evento} aoRemover={aoRemover} />
+                ),
+              )}
             </div>
           </section>
         ))}

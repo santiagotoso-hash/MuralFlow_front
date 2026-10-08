@@ -1,12 +1,13 @@
 "use client";
 
-import { BookOpen, Clock, MapPin, Trash2, X } from "lucide-react";
+import { BookOpen, Cake, Clock, MapPin, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useConfirmar } from "@/components/Confirmacao";
 import { Botao, Campo, Cartao, Erro, Etiqueta } from "@/components/ui";
+import { NOME_ANIVERSARIANTE } from "@/lib/aniversarios";
 import { api } from "@/lib/api";
 import { dataHora, hora, localParaIso, NOME_TIPO_EVENTO, TOM_TIPO_EVENTO } from "@/lib/formatar";
-import type { Disciplinas, Evento, TipoEvento, Turma } from "@/lib/tipos";
+import type { Aniversario, Disciplinas, Evento, TipoEvento, Turma } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 /** Um evento da agenda (usado na lista, no calendário e em Provas). */
@@ -66,6 +67,26 @@ export function CartaoEvento({
           <Trash2 className="size-4" />
         </button>
       )}
+    </Cartao>
+  );
+}
+
+/** Aniversário de aluno ou professor (vem da data de nascimento, todo ano). */
+export function CartaoAniversario({ aniversario: a }: { aniversario: Aniversario }) {
+  return (
+    <Cartao className="flex items-center gap-4 p-4">
+      <div className="text-primary flex w-14 shrink-0 justify-center">
+        <Cake className="size-5" aria-hidden />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-text font-semibold">{a.nome}</h3>
+          <Etiqueta tom="primario">Aniversário · {NOME_ANIVERSARIANTE[a.tipo]}</Etiqueta>
+          {a.turmas.map((t) => (
+            <Etiqueta key={t}>{t}</Etiqueta>
+          ))}
+        </div>
+      </div>
     </Cartao>
   );
 }

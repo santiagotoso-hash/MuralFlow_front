@@ -86,6 +86,17 @@ export interface Evento {
   turma: Turma | null;
 }
 
+/** Aniversário na agenda (GET /eventos/aniversarios): só dia e mês. */
+export interface Aniversario {
+  /** "aluno:<uuid>" ou "professor:<uuid>". */
+  id: string;
+  tipo: "aluno" | "professor";
+  nome: string;
+  mes: number;
+  dia: number;
+  turmas: string[];
+}
+
 export interface Mensagem {
   id: string;
   texto: string;
