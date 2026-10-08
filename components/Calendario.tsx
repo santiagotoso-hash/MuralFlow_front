@@ -2,11 +2,12 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { CartaoEvento } from "@/components/eventos";
+import { CartaoAniversario, CartaoEvento } from "@/components/eventos";
 import { Cartao, Erro, Etiqueta, TONS } from "@/components/ui";
+import { aniversariosNoAno } from "@/lib/aniversarios";
 import { feriadosNacionais } from "@/lib/feriados";
 import { chaveDia, NOME_TIPO_EVENTO, TOM_TIPO_EVENTO } from "@/lib/formatar";
-import type { Evento } from "@/lib/tipos";
+import type { Aniversario, Evento } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 const SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -24,7 +25,8 @@ const PONTO: Record<keyof typeof TONS, string> = {
 
 type Item =
   | { tipo: "evento"; evento: Evento }
-  | { tipo: "feriado"; nome: string };
+  | { tipo: "feriado"; nome: string }
+  | { tipo: "aniversario"; aniversario: Aniversario };
 
 const chaveUtc = (utc: number) => new Date(utc).toISOString().slice(0, 10);
 const utcDaChave = (chave: string) => Date.parse(`${chave}T00:00:00Z`);
@@ -57,6 +59,7 @@ export function Calendario({
   const de = new Date(`${dias[0]}T00:00:00-03:00`).toISOString();
   const ate = new Date(`${dias.at(-1)}T23:59:59-03:00`).toISOString();
   const eventos = useApi<Evento[]>(`/eventos?de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}`);
+  const aniversarios = useApi<Aniversario[]>("/eventos/aniversarios");
   const { recarregar } = eventos;
   useEffect(() => {
     if (versao) recarregar();
@@ -68,6 +71,9 @@ export function Calendario({
     const anos = new Set(dias.map((d) => Number(d.slice(0, 4))));
     for (const ano of anos) {
       for (const [chave, nome] of feriadosNacionais(ano)) add(chave, { tipo: "feriado", nome });
+      for (const [chave, lista] of aniversariosNoAno(aniversarios.dados ?? [], ano)) {
+        for (const a of lista) add(chave, { tipo: "aniversario", aniversario: a });
+      }
     }
     for (const e of eventos.dados ?? []) {
       // Evento de vários dias aparece em cada um deles (máx. 31).
@@ -76,7 +82,7 @@ export function Calendario({
       for (let t = ini; t <= fim; t += DIA) add(chaveUtc(t), { tipo: "evento", evento: e });
     }
     return mapa;
-  }, [eventos.dados, dias]);
+  }, [eventos.dados, aniversarios.dados, dias]);
 
   function mudarMes(delta: number) {
     const [a, m] = mes.split("-").map(Number);
@@ -124,7 +130,7 @@ export function Calendario({
           </div>
         </div>
 
-        {eventos.erro && <Erro mensagem={eventos.erro} />}
+        {(eventos.erro ?? aniversarios.erro) && <Erro mensagem={(eventos.erro ?? aniversarios.erro)!} />}
 
         <div className="grid grid-cols-7 gap-px" role="group" aria-label={`Dias de ${tituloMes}`}>
           {SEMANA.map((d) => (
@@ -137,8 +143,10 @@ export function Calendario({
             const foraDoMes = !chave.startsWith(mes);
             const ehHoje = chave === hoje;
             const ativo = chave === selecionado;
-            const tom = (i: Item) => (i.tipo === "feriado" ? "perigo" : TOM_TIPO_EVENTO[i.evento.tipo]);
-            const rotulo = (i: Item) => (i.tipo === "feriado" ? i.nome : i.evento.titulo);
+            const tom = (i: Item) =>
+              i.tipo === "feriado" ? "perigo" : i.tipo === "aniversario" ? "primario" : TOM_TIPO_EVENTO[i.evento.tipo];
+            const rotulo = (i: Item) =>
+              i.tipo === "feriado" ? i.nome : i.tipo === "aniversario" ? `🎂 ${i.aniversario.nome.split(" ")[0]}` : i.evento.titulo;
             return (
               <button
                 key={chave}
@@ -184,6 +192,10 @@ export function Calendario({
               {t === "passeio" ? "Passeio / festa" : NOME_TIPO_EVENTO[t]}
             </span>
           ))}
+          <span className="inline-flex items-center gap-1.5">
+            <span className={`size-2 rounded-full ${PONTO.primario}`} aria-hidden />
+            Aniversário
+          </span>
         </div>
       </Cartao>
 
@@ -197,6 +209,8 @@ export function Calendario({
                 <span className="text-text font-semibold">{i.nome}</span>
                 <Etiqueta tom="perigo">Feriado nacional</Etiqueta>
               </Cartao>
+            ) : i.tipo === "aniversario" ? (
+              <CartaoAniversario key={i.aniversario.id} aniversario={i.aniversario} />
             ) : (
               <CartaoEvento key={i.evento.id} evento={i.evento} aoRemover={aoRemover} />
             ),
