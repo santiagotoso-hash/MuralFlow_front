@@ -133,7 +133,7 @@ export default function Painel() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Cartao>
           <div className="border-border flex items-center justify-between border-b px-5 py-4">
             <h2 className="text-text font-semibold">Últimos comunicados</h2>
