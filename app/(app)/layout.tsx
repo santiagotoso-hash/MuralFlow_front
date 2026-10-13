@@ -2,6 +2,7 @@
 
 import {
   CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   Ellipsis,
   GraduationCap,
@@ -48,6 +49,7 @@ function menu(papel: Papel): ItemMenu[] {
     { href: "/comunicados", rotulo: "Comunicados", icone: Megaphone },
     { href: "/agenda", rotulo: "Agenda", icone: CalendarDays },
     { href: "/mensagens", rotulo: "Mensagens", icone: MessageCircle },
+    { href: "/chamada", rotulo: papel === "responsavel" ? "Frequência" : "Chamada", icone: ClipboardCheck },
     { href: "/provas", rotulo: "Provas", icone: ClipboardList },
     { href: "/boletim", rotulo: "Boletim", icone: GraduationCap },
     { href: "/saude", rotulo: "Saúde", icone: HeartPulse },

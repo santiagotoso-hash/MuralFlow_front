@@ -142,6 +142,83 @@ export interface ResumoFinanceiro {
   }[];
 }
 
+export type SituacaoPresenca = "presente" | "falta" | "falta_justificada" | "atraso";
+
+/** GET /chamada/turmas/:id?data= : a chamada da turma num dia. */
+export interface ChamadaDoDia {
+  hoje: string;
+  data: string;
+  turma: { id: string; nome: string };
+  /** false: ninguém fez a chamada deste dia ainda. */
+  feita: boolean;
+  registradaPor: string | null;
+  atualizadaEm: string | null;
+  alunos: { id: string; nome: string; situacao: SituacaoPresenca | null; observacao: string | null }[];
+}
+
+export interface ResumoFrequencia {
+  /** Dias com chamada registrada para o aluno. */
+  dias: number;
+  presencas: number;
+  atrasos: number;
+  faltas: number;
+  faltasJustificadas: number;
+  /** % de dias em que veio (presença ou atraso). null sem nenhuma chamada. */
+  frequencia: number | null;
+}
+
+/** GET /chamada/alunos/:id */
+export interface FrequenciaAluno {
+  aluno: { id: string; nome: string; turma: { id: string; nome: string } | null };
+  anoLetivo: number;
+  resumo: ResumoFrequencia;
+  /** Faltas e atrasos, do mais recente para trás. */
+  ocorrencias: { data: string; situacao: SituacaoPresenca; observacao: string | null }[];
+}
+
+/** GET /chamada/turmas/:id/resumo */
+export interface FrequenciaTurma {
+  turma: { id: string; nome: string; anoLetivo: number };
+  diasComChamada: number;
+  alunos: ({ id: string; nome: string } & ResumoFrequencia)[];
+}
+
+/** Um pagamento que entrou (de aluno) ou saiu (despesa). */
+export interface LancamentoRelatorio {
+  /** Dia do pagamento, "AAAA-MM-DD". */
+  data: string;
+  natureza: "entrada" | "saida";
+  /** Tipo da cobrança ou categoria da despesa. */
+  grupo: string;
+  descricao: string;
+  aluno: string | null;
+  turma: string | null;
+  valorCentavos: number;
+  formaPagamento: FormaPagamento | null;
+}
+
+/** GET /financeiro/relatorio?de=&ate= */
+export interface RelatorioFinanceiro {
+  de: string;
+  ate: string;
+  totais: { entradasCentavos: number; saidasCentavos: number; saldoCentavos: number };
+  entradasPorTipo: { nome: string; totalCentavos: number; quantidade: number }[];
+  saidasPorCategoria: { nome: string; totalCentavos: number; quantidade: number }[];
+  porMes: { mes: string; entradasCentavos: number; saidasCentavos: number }[];
+  lancamentos: LancamentoRelatorio[];
+}
+
+/** GET /financeiro/historico: quem fez o quê. */
+export interface LinhaHistorico {
+  id: string;
+  quando: string;
+  quem: string;
+  acao: string;
+  alvo: "cobranca" | "despesa" | "categoria";
+  alvoId: string | null;
+  resumo: string;
+}
+
 /** GET /financeiro/pendencias: aluno com cobrança vencida e não paga. */
 export interface PendenciaAluno {
   alunoId: string;
