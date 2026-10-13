@@ -1,3 +1,7 @@
+<img width="1038" height="787" alt="mural flow" src="https://github.com/user-attachments/assets/df338f35-4b99-407c-9bfe-cf4698d85402" />
+
+<img width="1017" height="792" alt="mural flow2" src="https://github.com/user-attachments/assets/67ef00e2-1d81-4252-9569-c96be6180cdb" />
+
 # MuralFlow — Front
 
 Comunicação entre a escola e as famílias dos alunos: **comunicados com confirmação de leitura**, **agenda escolar** e **mensagens diretas** entre responsáveis e professores.
