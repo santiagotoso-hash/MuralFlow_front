@@ -1,6 +1,6 @@
 /* Espelho das entidades da API (back/src/**\/*.entity.ts). */
 
-export type Papel = "admin" | "professor" | "responsavel";
+export type Papel = "admin" | "professor" | "responsavel" | "financeiro";
 export type Turno = "manha" | "tarde" | "integral" | "noite";
 export type CategoriaComunicado =
   | "geral"
@@ -84,6 +84,104 @@ export interface Evento {
   fim: string | null;
   local: string | null;
   turma: Turma | null;
+}
+
+export type TipoCobranca = "matricula" | "mensalidade" | "uniforme" | "livros" | "outro";
+export type FormaPagamento = "pix" | "boleto" | "cartao" | "dinheiro" | "transferencia";
+export type SituacaoCobranca = "pendente" | "atrasada" | "paga" | "cancelada";
+
+/** Uma cobrança do aluno. Valores sempre em centavos. */
+export interface Cobranca {
+  id: string;
+  alunoId: string;
+  tipo: TipoCobranca;
+  descricao: string;
+  valorCentavos: number;
+  /** "AAAA-MM-DD" */
+  vencimento: string;
+  pagoEm: string | null;
+  /** O que entrou de fato (com juros ou desconto). null = não paga. */
+  valorPagoCentavos: number | null;
+  formaPagamento: FormaPagamento | null;
+  situacao: SituacaoCobranca;
+  /** Só o financeiro e a direção recebem. */
+  observacao?: string | null;
+  lancadaPor?: string | null;
+}
+
+/** GET /financeiro/alunos/:id */
+export interface ExtratoAluno {
+  hoje: string;
+  aluno: { id: string; nome: string; matricula: string | null; turma: { id: string; nome: string } | null };
+  totais: { aVencerCentavos: number; atrasadoCentavos: number; pagoCentavos: number };
+  cobrancas: Cobranca[];
+}
+
+/** GET /financeiro/resumo */
+export interface ResumoFinanceiro {
+  hoje: string;
+  totais: {
+    aVencerCentavos: number;
+    atrasadoCentavos: number;
+    recebidoNoMesCentavos: number;
+    alunosEmAtraso: number;
+    /** Despesas da escola pagas neste mês (não muda com o filtro de turma). */
+    despesasPagasNoMesCentavos: number;
+  };
+  turmas: { id: string; nome: string }[];
+  alunos: {
+    id: string;
+    nome: string;
+    matricula: string | null;
+    turma: { id: string; nome: string } | null;
+    responsaveis: { id: string; nome: string; telefone: string | null; email: string }[];
+    aVencerCentavos: number;
+    atrasadoCentavos: number;
+    pagoCentavos: number;
+    proximoVencimento: string | null;
+  }[];
+}
+
+/** GET /financeiro/pendencias: aluno com cobrança vencida e não paga. */
+export interface PendenciaAluno {
+  alunoId: string;
+  atrasadoCentavos: number;
+  quantidade: number;
+  /** Vencimento da mais antiga, "AAAA-MM-DD". */
+  desde: string;
+}
+
+/** Categoria de despesa (Aluguel, Energia…), criada e renomeada pela escola. */
+export interface CategoriaDespesa {
+  id: string;
+  nome: string;
+  ativa: boolean;
+  totalDespesas?: number;
+}
+
+export type SituacaoDespesa = "pendente" | "atrasada" | "paga";
+
+/** Uma conta da escola a pagar. */
+export interface Despesa {
+  id: string;
+  categoria: { id: string; nome: string };
+  descricao: string;
+  valorCentavos: number;
+  vencimento: string;
+  pagoEm: string | null;
+  valorPagoCentavos: number | null;
+  formaPagamento: FormaPagamento | null;
+  situacao: SituacaoDespesa;
+  observacao: string | null;
+  lancadaPor: string | null;
+}
+
+/** GET /financeiro/despesas?mes=AAAA-MM */
+export interface ListaDespesas {
+  hoje: string;
+  mes: string;
+  totais: { aPagarCentavos: number; atrasadoCentavos: number; pagoNoMesCentavos: number };
+  despesas: Despesa[];
 }
 
 /** Aniversário na agenda (GET /eventos/aniversarios): só dia e mês. */
