@@ -4,6 +4,7 @@ import type {
   Papel,
   SituacaoCobranca,
   SituacaoDespesa,
+  SituacaoPresenca,
   TipoCobranca,
   TipoEvento,
   Turno,
@@ -202,3 +203,20 @@ export const TOM_SITUACAO: Record<SituacaoCobranca, "info" | "perigo" | "sucesso
   paga: "sucesso",
   cancelada: "neutro",
 };
+
+export const NOME_SITUACAO_PRESENCA: Record<SituacaoPresenca, string> = {
+  presente: "Presente",
+  falta: "Falta",
+  falta_justificada: "Falta justificada",
+  atraso: "Atraso",
+};
+
+export const TOM_SITUACAO_PRESENCA: Record<SituacaoPresenca, "sucesso" | "perigo" | "alerta" | "info"> = {
+  presente: "sucesso",
+  falta: "perigo",
+  falta_justificada: "alerta",
+  atraso: "info",
+};
+
+/** Frequência mínima para aprovação (LDB): abaixo disso a tela destaca. */
+export const FREQUENCIA_MINIMA = 75;
