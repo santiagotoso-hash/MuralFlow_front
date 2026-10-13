@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronRight, Plus, Wallet, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, FileDown, Plus, Wallet, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
 import { Abas, Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
+import { baixarRecibo } from "@/lib/arquivos";
 import {
   centavosParaCampo,
   dataBr,
@@ -21,10 +22,11 @@ import type { Aluno, Cobranca, ExtratoAluno, ResumoFinanceiro, TipoCobranca } fr
 import { useApi } from "@/lib/use-api";
 import { Categorias, Despesas } from "./despesas";
 import { FormPagamento, Total } from "./pagamento";
+import { Historico, Relatorio } from "./relatorio";
 
 const TIPOS = Object.keys(NOME_TIPO_COBRANCA) as TipoCobranca[];
 
-type AbaEquipe = "alunos" | "despesas" | "categorias";
+type AbaEquipe = "alunos" | "despesas" | "categorias" | "relatorio" | "historico";
 
 export default function PaginaFinanceiro() {
   // useSearchParams pede um Suspense em volta.
@@ -180,6 +182,8 @@ function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
           { id: "alunos", rotulo: "Alunos" },
           { id: "despesas", rotulo: "Despesas" },
           { id: "categorias", rotulo: "Categorias" },
+          { id: "relatorio", rotulo: "Relatório" },
+          { id: "historico", rotulo: "Histórico" },
         ]}
         ativa={aba}
         setAtiva={(nova) => {
@@ -192,6 +196,8 @@ function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
 
       {aba === "despesas" && <Despesas />}
       {aba === "categorias" && <Categorias />}
+      {aba === "relatorio" && <Relatorio />}
+      {aba === "historico" && <Historico />}
 
       {aba === "alunos" && lancando && resumo.dados && (
         <NovaCobranca
@@ -517,6 +523,12 @@ function Extrato({
                     </p>
                   </div>
 
+                  {!equipe && c.situacao === "paga" && (
+                    <div className="mt-3">
+                      <BotaoRecibo cobranca={c} aluno={aluno} aoFalhar={setErro} />
+                    </div>
+                  )}
+
                   {equipe && acaoAberta?.id !== c.id && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(c.situacao === "pendente" || c.situacao === "atrasada") && (
@@ -531,9 +543,12 @@ function Extrato({
                         </>
                       )}
                       {c.situacao === "paga" && (
-                        <Botao variante="secundario" onClick={() => desfazerPagamento(c)}>
-                          Desfazer pagamento
-                        </Botao>
+                        <>
+                          <BotaoRecibo cobranca={c} aluno={aluno} aoFalhar={setErro} />
+                          <Botao variante="secundario" onClick={() => desfazerPagamento(c)}>
+                            Desfazer pagamento
+                          </Botao>
+                        </>
                       )}
                       {c.situacao !== "paga" && (
                         <Botao
@@ -569,6 +584,41 @@ function Extrato({
         </>
       )}
     </>
+  );
+}
+
+/** Baixa o recibo em PDF de uma cobrança paga. */
+function BotaoRecibo({
+  cobranca,
+  aluno,
+  aoFalhar,
+}: {
+  cobranca: Cobranca;
+  aluno: ExtratoAluno["aluno"];
+  aoFalhar: (mensagem: string) => void;
+}) {
+  const [gerando, setGerando] = useState(false);
+  return (
+    <Botao
+      variante="secundario"
+      carregando={gerando}
+      onClick={async () => {
+        setGerando(true);
+        try {
+          await baixarRecibo({
+            cobranca,
+            aluno: { nome: aluno.nome, matricula: aluno.matricula, turma: aluno.turma?.nome ?? null },
+          });
+        } catch {
+          aoFalhar("Não foi possível gerar o recibo. Tente de novo.");
+        } finally {
+          setGerando(false);
+        }
+      }}
+    >
+      {!gerando && <FileDown className="size-4" aria-hidden />}
+      Recibo
+    </Botao>
   );
 }
 

@@ -142,6 +142,42 @@ export interface ResumoFinanceiro {
   }[];
 }
 
+/** Um pagamento que entrou (de aluno) ou saiu (despesa). */
+export interface LancamentoRelatorio {
+  /** Dia do pagamento, "AAAA-MM-DD". */
+  data: string;
+  natureza: "entrada" | "saida";
+  /** Tipo da cobrança ou categoria da despesa. */
+  grupo: string;
+  descricao: string;
+  aluno: string | null;
+  turma: string | null;
+  valorCentavos: number;
+  formaPagamento: FormaPagamento | null;
+}
+
+/** GET /financeiro/relatorio?de=&ate= */
+export interface RelatorioFinanceiro {
+  de: string;
+  ate: string;
+  totais: { entradasCentavos: number; saidasCentavos: number; saldoCentavos: number };
+  entradasPorTipo: { nome: string; totalCentavos: number; quantidade: number }[];
+  saidasPorCategoria: { nome: string; totalCentavos: number; quantidade: number }[];
+  porMes: { mes: string; entradasCentavos: number; saidasCentavos: number }[];
+  lancamentos: LancamentoRelatorio[];
+}
+
+/** GET /financeiro/historico: quem fez o quê. */
+export interface LinhaHistorico {
+  id: string;
+  quando: string;
+  quem: string;
+  acao: string;
+  alvo: "cobranca" | "despesa" | "categoria";
+  alvoId: string | null;
+  resumo: string;
+}
+
 /** GET /financeiro/pendencias: aluno com cobrança vencida e não paga. */
 export interface PendenciaAluno {
   alunoId: string;
