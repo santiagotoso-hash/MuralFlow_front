@@ -1,6 +1,9 @@
 import type {
   CategoriaComunicado,
+  FormaPagamento,
   Papel,
+  SituacaoCobranca,
+  TipoCobranca,
   TipoEvento,
   Turno,
 } from "./tipos";
@@ -57,13 +60,18 @@ export const NOME_PAPEL: Record<Papel, string> = {
   admin: "Direção",
   professor: "Professor(a)",
   responsavel: "Responsável",
+  financeiro: "Financeiro",
 };
+
+/** Primeira tela de cada papel (o financeiro não tem painel). */
+export const inicioDe = (papel: Papel) => (papel === "financeiro" ? "/financeiro" : "/painel");
 
 /** Tratamento na saudação do painel ("Bom dia, Pro Carla!"). */
 export const TRATAMENTO: Record<Papel, string> = {
   admin: "Diretor/a",
   professor: "Pro",
   responsavel: "Pai/Mãe",
+  financeiro: "Financeiro",
 };
 
 export const NOME_TURNO: Record<Turno, string> = {
@@ -135,3 +143,52 @@ export const nota = (valor: number) =>
 /** "2026-06-20T14:00" (input datetime-local) → ISO com fuso de Brasília. */
 export const localParaIso = (valor: string) =>
   valor ? new Date(`${valor}:00-03:00`).toISOString() : "";
+
+/** 125050 (centavos) → "R$ 1.250,50". */
+export const reais = (centavos: number) =>
+  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * Valor digitado → centavos, ou null se não for um valor. Aceita "1.250,50",
+ * "1250,5", "R$ 89,90", "1250" e também "89.90" (ponto como decimal quando
+ * há um só ponto seguido de 1 ou 2 dígitos; "1.250" é mil duzentos e cinquenta).
+ */
+export function lerReais(texto: string): number | null {
+  const t = texto.replace(/[R$\s]/g, "");
+  const m = /^(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?$/.exec(t) ?? /^(\d+)\.(\d{1,2})$/.exec(t);
+  if (!m) return null;
+  return Number(m[1].replace(/\./g, "")) * 100 + Number((m[2] ?? "").padEnd(2, "0"));
+}
+
+/** "2026-10-31" → "31/10/2026". */
+export const dataBr = (data: string) => data.slice(0, 10).split("-").reverse().join("/");
+
+export const NOME_TIPO_COBRANCA: Record<TipoCobranca, string> = {
+  matricula: "Matrícula",
+  mensalidade: "Mensalidade",
+  uniforme: "Uniforme",
+  livros: "Livros",
+  outro: "Outro",
+};
+
+export const NOME_FORMA_PAGAMENTO: Record<FormaPagamento, string> = {
+  pix: "Pix",
+  boleto: "Boleto",
+  cartao: "Cartão",
+  dinheiro: "Dinheiro",
+  transferencia: "Transferência",
+};
+
+export const NOME_SITUACAO: Record<SituacaoCobranca, string> = {
+  pendente: "A vencer",
+  atrasada: "Em atraso",
+  paga: "Paga",
+  cancelada: "Cancelada",
+};
+
+export const TOM_SITUACAO: Record<SituacaoCobranca, "info" | "perigo" | "sucesso" | "neutro"> = {
+  pendente: "info",
+  atrasada: "perigo",
+  paga: "sucesso",
+  cancelada: "neutro",
+};

@@ -1,6 +1,6 @@
 /* Espelho das entidades da API (back/src/**\/*.entity.ts). */
 
-export type Papel = "admin" | "professor" | "responsavel";
+export type Papel = "admin" | "professor" | "responsavel" | "financeiro";
 export type Turno = "manha" | "tarde" | "integral" | "noite";
 export type CategoriaComunicado =
   | "geral"
@@ -84,6 +84,53 @@ export interface Evento {
   fim: string | null;
   local: string | null;
   turma: Turma | null;
+}
+
+export type TipoCobranca = "matricula" | "mensalidade" | "uniforme" | "livros" | "outro";
+export type FormaPagamento = "pix" | "boleto" | "cartao" | "dinheiro" | "transferencia";
+export type SituacaoCobranca = "pendente" | "atrasada" | "paga" | "cancelada";
+
+/** Uma cobrança do aluno. Valores sempre em centavos. */
+export interface Cobranca {
+  id: string;
+  alunoId: string;
+  tipo: TipoCobranca;
+  descricao: string;
+  valorCentavos: number;
+  /** "AAAA-MM-DD" */
+  vencimento: string;
+  pagoEm: string | null;
+  formaPagamento: FormaPagamento | null;
+  situacao: SituacaoCobranca;
+  /** Só o financeiro e a direção recebem. */
+  observacao?: string | null;
+  lancadaPor?: string | null;
+}
+
+/** GET /financeiro/alunos/:id */
+export interface ExtratoAluno {
+  hoje: string;
+  aluno: { id: string; nome: string; matricula: string | null; turma: { id: string; nome: string } | null };
+  totais: { aVencerCentavos: number; atrasadoCentavos: number; pagoCentavos: number };
+  cobrancas: Cobranca[];
+}
+
+/** GET /financeiro/resumo */
+export interface ResumoFinanceiro {
+  hoje: string;
+  totais: { aVencerCentavos: number; atrasadoCentavos: number; recebidoNoMesCentavos: number; alunosEmAtraso: number };
+  turmas: { id: string; nome: string }[];
+  alunos: {
+    id: string;
+    nome: string;
+    matricula: string | null;
+    turma: { id: string; nome: string } | null;
+    responsaveis: { id: string; nome: string; telefone: string | null; email: string }[];
+    aVencerCentavos: number;
+    atrasadoCentavos: number;
+    pagoCentavos: number;
+    proximoVencimento: string | null;
+  }[];
 }
 
 /** Aniversário na agenda (GET /eventos/aniversarios): só dia e mês. */

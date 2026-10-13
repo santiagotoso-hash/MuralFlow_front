@@ -14,6 +14,7 @@ import {
   Settings,
   UserRound,
   Users,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -21,7 +22,7 @@ import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
 import { Avatar, Carregando } from "@/components/ui";
-import { NOME_PAPEL } from "@/lib/formatar";
+import { inicioDe, NOME_PAPEL } from "@/lib/formatar";
 import type { Papel } from "@/lib/tipos";
 
 interface ItemMenu {
@@ -31,7 +32,17 @@ interface ItemMenu {
   papeis?: Papel[];
 }
 
+/** O financeiro só tem estas telas (a API bloqueia o resto). */
+const TELAS_DO_FINANCEIRO = ["/financeiro", "/alunos", "/perfil"];
+
 function menu(papel: Papel): ItemMenu[] {
+  if (papel === "financeiro") {
+    return [
+      { href: "/financeiro", rotulo: "Financeiro", icone: Wallet },
+      { href: "/alunos", rotulo: "Alunos", icone: Users },
+      { href: "/perfil", rotulo: "Perfil", icone: UserRound },
+    ];
+  }
   const itens: ItemMenu[] = [
     { href: "/painel", rotulo: "Início", icone: House },
     { href: "/comunicados", rotulo: "Comunicados", icone: Megaphone },
@@ -40,6 +51,7 @@ function menu(papel: Papel): ItemMenu[] {
     { href: "/provas", rotulo: "Provas", icone: ClipboardList },
     { href: "/boletim", rotulo: "Boletim", icone: GraduationCap },
     { href: "/saude", rotulo: "Saúde", icone: HeartPulse },
+    { href: "/financeiro", rotulo: "Financeiro", icone: Wallet, papeis: ["admin", "responsavel"] },
     {
       href: "/alunos",
       rotulo: papel === "responsavel" ? "Meus filhos" : "Alunos",
@@ -62,7 +74,13 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
     if (!carregando && !usuario) router.replace("/entrar");
   }, [carregando, usuario, router]);
 
-  if (!usuario) {
+  const foraDaArea =
+    usuario?.papel === "financeiro" && !TELAS_DO_FINANCEIRO.some((t) => pathname === t || pathname.startsWith(`${t}/`));
+  useEffect(() => {
+    if (foraDaArea) router.replace("/financeiro");
+  }, [foraDaArea, router]);
+
+  if (!usuario || foraDaArea) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
         <Carregando />
@@ -83,7 +101,7 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
       {/* ── Barra lateral (desktop) ── */}
       <aside className="bg-surface border-border sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r p-4 lg:flex">
         <div className="px-2 py-2">
-          <Logo href="/painel" />
+          <Logo href={inicioDe(usuario.papel)} />
         </div>
         <nav className="mt-6 flex-1 space-y-1" aria-label="Menu principal">
           {itens.map(({ href, rotulo, icone: Icone }) => (
@@ -122,7 +140,7 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
 
       {/* ── Topo (celular) ── */}
       <header className="bg-surface border-border sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 lg:hidden">
-        <Logo href="/painel" />
+        <Logo href={inicioDe(usuario.papel)} />
         {/* Gestão e Perfil não cabem na barra inferior: ficam aqui. */}
         <div className="flex items-center gap-1">
           {usuario.papel === "admin" && (
@@ -174,7 +192,8 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
       {/* ── Navegação inferior (celular) ── */}
       <nav
         aria-label="Menu principal"
-        className="bg-surface border-border fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="bg-surface border-border fixed inset-x-0 bottom-0 z-20 grid border-t pb-[env(safe-area-inset-bottom)] lg:hidden"
+        style={{ gridTemplateColumns: `repeat(${barra.length + (mais.length ? 1 : 0)}, minmax(0, 1fr))` }}
       >
         {barra.map(({ href, rotulo, icone: Icone }) => (
           <Link
@@ -190,18 +209,20 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
             <span className="truncate">{rotulo}</span>
           </Link>
         ))}
-        <button
-          type="button"
-          onClick={() => setMaisAberto((v) => !v)}
-          aria-expanded={maisAberto}
-          aria-controls="menu-mais"
-          className={`flex cursor-pointer flex-col items-center gap-1 py-2 text-[11px] font-medium ${
-            maisAberto || maisAtivo ? "text-primary" : "text-text-muted"
-          }`}
-        >
-          <Ellipsis className="size-5" aria-hidden />
-          <span>Mais</span>
-        </button>
+        {mais.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setMaisAberto((v) => !v)}
+            aria-expanded={maisAberto}
+            aria-controls="menu-mais"
+            className={`flex cursor-pointer flex-col items-center gap-1 py-2 text-[11px] font-medium ${
+              maisAberto || maisAtivo ? "text-primary" : "text-text-muted"
+            }`}
+          >
+            <Ellipsis className="size-5" aria-hidden />
+            <span>Mais</span>
+          </button>
+        )}
       </nav>
     </div>
   );

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
 import { Botao, Campo, Cartao, Erro } from "@/components/ui";
+import { inicioDe } from "@/lib/formatar";
 
 export default function Entrar() {
   const { usuario, entrar } = useSessao();
@@ -14,9 +15,9 @@ export default function Entrar() {
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  // Já logado (sessão restaurada): direto para o painel.
+  // Já logado (sessão restaurada): direto para a primeira tela do papel.
   useEffect(() => {
-    if (usuario) router.replace("/painel");
+    if (usuario) router.replace(inicioDe(usuario.papel));
   }, [usuario, router]);
 
   async function enviar(e: React.FormEvent) {

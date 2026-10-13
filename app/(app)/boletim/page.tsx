@@ -4,44 +4,13 @@ import { Check, GraduationCap } from "lucide-react";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
-import { Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Vazio } from "@/components/ui";
+import { Abas, Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
 import { nota } from "@/lib/formatar";
 import type { Aluno, Boletim, Disciplinas, Pauta, Turma } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 const BIMESTRES = [1, 2, 3, 4] as const;
-
-function Abas<T extends string>({
-  abas,
-  ativa,
-  setAtiva,
-  rotulo,
-}: {
-  abas: { id: T; rotulo: string }[];
-  ativa: T;
-  setAtiva: (id: T) => void;
-  rotulo: string;
-}) {
-  return (
-    <div role="tablist" aria-label={rotulo} className="border-border mb-6 flex gap-1 overflow-x-auto border-b">
-      {abas.map((a) => (
-        <button
-          key={a.id}
-          role="tab"
-          type="button"
-          aria-selected={ativa === a.id}
-          onClick={() => setAtiva(a.id)}
-          className={`-mb-px cursor-pointer border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap ${
-            ativa === a.id ? "border-primary text-primary" : "text-text-secondary hover:text-text border-transparent"
-          }`}
-        >
-          {a.rotulo}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export default function PaginaBoletim() {
   const { usuario } = useSessao();

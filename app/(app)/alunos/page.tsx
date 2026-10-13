@@ -25,7 +25,10 @@ export default function Alunos() {
   const { usuario } = useSessao();
   const [turmaId, setTurmaId] = useState("");
   const familia = usuario?.papel === "responsavel";
-  const turmas = useApi<Turma[]>(familia ? null : "/turmas");
+  // O financeiro não acessa as turmas: vê a lista inteira (o filtro por turma
+  // dele fica na tela Financeiro).
+  const financeiro = usuario?.papel === "financeiro";
+  const turmas = useApi<Turma[]>(familia || financeiro ? null : "/turmas");
   const alunos = useApi<Aluno[]>(`/alunos${turmaId ? `?turmaId=${turmaId}` : ""}`);
 
   if (!usuario) return null;
@@ -34,9 +37,16 @@ export default function Alunos() {
     <>
       <Cabecalho
         titulo={familia ? "Meus filhos" : "Alunos"}
-        descricao={familia ? "Os alunos vinculados à sua conta." : "Alunos das suas turmas e seus responsáveis."}
+        descricao={
+          familia
+            ? "Os alunos vinculados à sua conta."
+            : financeiro
+              ? "Todos os alunos e o contato dos responsáveis."
+              : "Alunos das suas turmas e seus responsáveis."
+        }
         acao={
-          !familia && (
+          !familia &&
+          !financeiro && (
             <div className="w-56">
               <Campo tipo="select" rotulo="Turma" value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>
                 <option value="">Todas</option>
