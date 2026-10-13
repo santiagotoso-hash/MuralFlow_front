@@ -100,6 +100,8 @@ export interface Cobranca {
   /** "AAAA-MM-DD" */
   vencimento: string;
   pagoEm: string | null;
+  /** O que entrou de fato (com juros ou desconto). null = não paga. */
+  valorPagoCentavos: number | null;
   formaPagamento: FormaPagamento | null;
   situacao: SituacaoCobranca;
   /** Só o financeiro e a direção recebem. */
@@ -118,7 +120,14 @@ export interface ExtratoAluno {
 /** GET /financeiro/resumo */
 export interface ResumoFinanceiro {
   hoje: string;
-  totais: { aVencerCentavos: number; atrasadoCentavos: number; recebidoNoMesCentavos: number; alunosEmAtraso: number };
+  totais: {
+    aVencerCentavos: number;
+    atrasadoCentavos: number;
+    recebidoNoMesCentavos: number;
+    alunosEmAtraso: number;
+    /** Despesas da escola pagas neste mês (não muda com o filtro de turma). */
+    despesasPagasNoMesCentavos: number;
+  };
   turmas: { id: string; nome: string }[];
   alunos: {
     id: string;
@@ -131,6 +140,39 @@ export interface ResumoFinanceiro {
     pagoCentavos: number;
     proximoVencimento: string | null;
   }[];
+}
+
+/** Categoria de despesa (Aluguel, Energia…), criada e renomeada pela escola. */
+export interface CategoriaDespesa {
+  id: string;
+  nome: string;
+  ativa: boolean;
+  totalDespesas?: number;
+}
+
+export type SituacaoDespesa = "pendente" | "atrasada" | "paga";
+
+/** Uma conta da escola a pagar. */
+export interface Despesa {
+  id: string;
+  categoria: { id: string; nome: string };
+  descricao: string;
+  valorCentavos: number;
+  vencimento: string;
+  pagoEm: string | null;
+  valorPagoCentavos: number | null;
+  formaPagamento: FormaPagamento | null;
+  situacao: SituacaoDespesa;
+  observacao: string | null;
+  lancadaPor: string | null;
+}
+
+/** GET /financeiro/despesas?mes=AAAA-MM */
+export interface ListaDespesas {
+  hoje: string;
+  mes: string;
+  totais: { aPagarCentavos: number; atrasadoCentavos: number; pagoNoMesCentavos: number };
+  despesas: Despesa[];
 }
 
 /** Aniversário na agenda (GET /eventos/aniversarios): só dia e mês. */

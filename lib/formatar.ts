@@ -3,6 +3,7 @@ import type {
   FormaPagamento,
   Papel,
   SituacaoCobranca,
+  SituacaoDespesa,
   TipoCobranca,
   TipoEvento,
   Turno,
@@ -185,6 +186,15 @@ export const NOME_SITUACAO: Record<SituacaoCobranca, string> = {
   paga: "Paga",
   cancelada: "Cancelada",
 };
+
+export const NOME_SITUACAO_DESPESA: Record<SituacaoDespesa, string> = {
+  pendente: "A pagar",
+  atrasada: "Em atraso",
+  paga: "Paga",
+};
+
+/** 125050 → "1250,50", para preencher um campo de valor. */
+export const centavosParaCampo = (centavos: number) => (centavos / 100).toFixed(2).replace(".", ",");
 
 export const TOM_SITUACAO: Record<SituacaoCobranca, "info" | "perigo" | "sucesso" | "neutro"> = {
   pendente: "info",

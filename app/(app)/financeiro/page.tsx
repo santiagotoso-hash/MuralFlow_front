@@ -7,6 +7,7 @@ import { useConfirmar } from "@/components/Confirmacao";
 import { Abas, Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
 import {
+  centavosParaCampo,
   dataBr,
   lerReais,
   NOME_FORMA_PAGAMENTO,
@@ -15,18 +16,14 @@ import {
   reais,
   TOM_SITUACAO,
 } from "@/lib/formatar";
-import type {
-  Aluno,
-  Cobranca,
-  ExtratoAluno,
-  FormaPagamento,
-  ResumoFinanceiro,
-  TipoCobranca,
-} from "@/lib/tipos";
+import type { Aluno, Cobranca, ExtratoAluno, ResumoFinanceiro, TipoCobranca } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
+import { Categorias, Despesas } from "./despesas";
+import { FormPagamento, Total } from "./pagamento";
 
 const TIPOS = Object.keys(NOME_TIPO_COBRANCA) as TipoCobranca[];
-const FORMAS = Object.keys(NOME_FORMA_PAGAMENTO) as FormaPagamento[];
+
+type AbaEquipe = "alunos" | "despesas" | "categorias";
 
 export default function PaginaFinanceiro() {
   const { usuario } = useSessao();
@@ -75,6 +72,7 @@ function FinanceiroFamilia({ filhos }: { filhos: Aluno[] }) {
 /* ─────────────────────── Financeiro e direção ─────────────────────── */
 
 function FinanceiroEquipe() {
+  const [aba, setAba] = useState<AbaEquipe>("alunos");
   const [turmaId, setTurmaId] = useState("");
   const [busca, setBusca] = useState("");
   const [soAtraso, setSoAtraso] = useState(false);
@@ -146,8 +144,9 @@ function FinanceiroEquipe() {
     <>
       <Cabecalho
         titulo="Financeiro"
-        descricao="Matrícula, mensalidades, uniforme e livros de cada aluno."
+        descricao="O que os alunos pagam e o que a escola gasta."
         acao={
+          aba === "alunos" &&
           !lancando && (
             <Botao onClick={() => setLancando(true)} disabled={!resumo.dados}>
               <Plus className="size-4" aria-hidden />
@@ -157,7 +156,26 @@ function FinanceiroEquipe() {
         }
       />
 
-      {lancando && resumo.dados && (
+      <Abas
+        rotulo="Áreas do financeiro"
+        abas={[
+          { id: "alunos", rotulo: "Alunos" },
+          { id: "despesas", rotulo: "Despesas" },
+          { id: "categorias", rotulo: "Categorias" },
+        ]}
+        ativa={aba}
+        setAtiva={(nova) => {
+          setAba(nova);
+          setLancando(false);
+          // Uma despesa paga muda o saldo do mês.
+          if (nova === "alunos") recarregar();
+        }}
+      />
+
+      {aba === "despesas" && <Despesas />}
+      {aba === "categorias" && <Categorias />}
+
+      {aba === "alunos" && lancando && resumo.dados && (
         <NovaCobranca
           resumo={resumo.dados}
           aoFechar={() => setLancando(false)}
@@ -168,12 +186,12 @@ function FinanceiroEquipe() {
         />
       )}
 
-      {resumo.erro && <Erro mensagem={resumo.erro} />}
-      {resumo.carregando && <Carregando />}
+      {aba === "alunos" && resumo.erro && <Erro mensagem={resumo.erro} />}
+      {aba === "alunos" && resumo.carregando && <Carregando />}
 
-      {t && (
+      {aba === "alunos" && t && (
         <>
-          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className={`mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 ${turmaId ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
             <Total
               rotulo="Em atraso"
               valor={t.atrasadoCentavos}
@@ -182,10 +200,19 @@ function FinanceiroEquipe() {
                   ? "Nenhum aluno em atraso"
                   : `${t.alunosEmAtraso} ${t.alunosEmAtraso === 1 ? "aluno" : "alunos"}`
               }
-              perigo={t.atrasadoCentavos > 0}
+              tom={t.atrasadoCentavos > 0 ? "perigo" : undefined}
             />
             <Total rotulo="A vencer" valor={t.aVencerCentavos} detalhe="Cobranças ainda no prazo" />
-            <Total rotulo="Recebido neste mês" valor={t.recebidoNoMesCentavos} detalhe="Baixas com data deste mês" />
+            <Total rotulo="Recebido neste mês" valor={t.recebidoNoMesCentavos} detalhe="Pagamentos com data deste mês" />
+            {/* O saldo é da escola toda: some quando se filtra uma turma. */}
+            {!turmaId && (
+              <Total
+                rotulo="Saldo do mês"
+                valor={t.recebidoNoMesCentavos - t.despesasPagasNoMesCentavos}
+                detalhe={`Recebido menos ${reais(t.despesasPagasNoMesCentavos)} de despesas pagas`}
+                tom={t.recebidoNoMesCentavos < t.despesasPagasNoMesCentavos ? "perigo" : "sucesso"}
+              />
+            )}
           </div>
 
           <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -224,53 +251,65 @@ function FinanceiroEquipe() {
               <Vazio icone={Wallet} titulo="Nenhum aluno encontrado" />
             </Cartao>
           ) : (
-            <Cartao className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="text-text-muted border-border border-b text-xs uppercase">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Aluno</th>
-                    <th className="px-4 py-3 font-medium">Responsáveis</th>
-                    <th className="px-4 py-3 text-right font-medium">Em atraso</th>
-                    <th className="px-4 py-3 text-right font-medium">A vencer</th>
-                    <th className="px-4 py-3 font-medium">Próx. vencimento</th>
-                    <th className="px-2 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-border divide-y">
-                  {alunos.map((a) => (
-                    <tr key={a.id} onClick={() => setAbertoId(a.id)} className="hover:bg-bg cursor-pointer">
-                      <td className="px-4 py-3">
-                        <button type="button" className="text-text cursor-pointer text-left font-medium">
-                          {a.nome}
-                        </button>
-                        <p className="text-text-muted text-xs">{a.turma?.nome ?? "Sem turma"}</p>
-                      </td>
-                      <td className="text-text-secondary px-4 py-3">
-                        {a.responsaveis.length === 0 && <span className="text-text-muted">—</span>}
-                        {a.responsaveis.map((r) => (
-                          <p key={r.id} className="whitespace-nowrap">
-                            {r.nome}
-                            {r.telefone && <span className="text-text-muted"> · {r.telefone}</span>}
-                          </p>
-                        ))}
-                      </td>
-                      <td className={`px-4 py-3 text-right whitespace-nowrap ${a.atrasadoCentavos ? "text-danger font-semibold" : "text-text-muted"}`}>
-                        {a.atrasadoCentavos ? reais(a.atrasadoCentavos) : "—"}
-                      </td>
-                      <td className="text-text px-4 py-3 text-right whitespace-nowrap">
-                        {a.aVencerCentavos ? reais(a.aVencerCentavos) : <span className="text-text-muted">—</span>}
-                      </td>
-                      <td className="text-text-secondary px-4 py-3 whitespace-nowrap">
-                        {a.proximoVencimento ? dataBr(a.proximoVencimento) : <span className="text-text-muted">—</span>}
-                      </td>
-                      <td className="px-2 py-3">
-                        <ChevronRight className="text-text-muted size-4" aria-hidden />
-                      </td>
+            <>
+              <p className="text-text-muted mb-2 text-xs">
+                Clique no aluno para ver as cobranças dele e registrar um pagamento.
+              </p>
+              <Cartao className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-text-muted border-border border-b text-xs uppercase">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Aluno</th>
+                      <th className="px-4 py-3 font-medium">Responsáveis</th>
+                      <th className="px-4 py-3 text-right font-medium">Em atraso</th>
+                      <th className="px-4 py-3 text-right font-medium">A vencer</th>
+                      <th className="px-4 py-3 font-medium">Próx. vencimento</th>
+                      <th className="px-2 py-3" />
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Cartao>
+                  </thead>
+                  <tbody className="divide-border divide-y">
+                    {alunos.map((a) => (
+                      <tr key={a.id} onClick={() => setAbertoId(a.id)} className="hover:bg-bg cursor-pointer">
+                        <td className="px-4 py-3">
+                          <button type="button" className="text-text cursor-pointer text-left font-medium">
+                            {a.nome}
+                          </button>
+                          <p className="text-text-muted text-xs">{a.turma?.nome ?? "Sem turma"}</p>
+                        </td>
+                        <td className="text-text-secondary px-4 py-3">
+                          {a.responsaveis.length === 0 && <span className="text-text-muted">—</span>}
+                          {a.responsaveis.map((r) => (
+                            <p key={r.id} className="whitespace-nowrap">
+                              {r.nome}
+                              {r.telefone && <span className="text-text-muted"> · {r.telefone}</span>}
+                            </p>
+                          ))}
+                        </td>
+                        <td className={`px-4 py-3 text-right whitespace-nowrap ${a.atrasadoCentavos ? "text-danger font-semibold" : "text-text-muted"}`}>
+                          {a.atrasadoCentavos ? reais(a.atrasadoCentavos) : "—"}
+                        </td>
+                        <td className="text-text px-4 py-3 text-right whitespace-nowrap">
+                          {a.aVencerCentavos ? reais(a.aVencerCentavos) : <span className="text-text-muted">—</span>}
+                        </td>
+                        <td className="text-text-secondary px-4 py-3 whitespace-nowrap">
+                          {a.proximoVencimento ? dataBr(a.proximoVencimento) : <span className="text-text-muted">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          {a.atrasadoCentavos + a.aVencerCentavos > 0 ? (
+                            <span className="text-primary inline-flex items-center gap-1 text-sm font-medium">
+                              Receber
+                              <ChevronRight className="size-4" aria-hidden />
+                            </span>
+                          ) : (
+                            <ChevronRight className="text-text-muted ml-auto size-4" aria-hidden />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Cartao>
+            </>
           )}
         </>
       )}
@@ -278,19 +317,9 @@ function FinanceiroEquipe() {
   );
 }
 
-function Total({ rotulo, valor, detalhe, perigo }: { rotulo: string; valor: number; detalhe: string; perigo?: boolean }) {
-  return (
-    <Cartao className="p-5">
-      <p className="text-text-secondary text-sm">{rotulo}</p>
-      <p className={`mt-1 text-2xl font-bold ${perigo ? "text-danger" : "text-text"}`}>{reais(valor)}</p>
-      <p className="text-text-muted mt-1 text-xs">{detalhe}</p>
-    </Cartao>
-  );
-}
-
 /* ───────────────────────────── Extrato ───────────────────────────── */
 
-/** Cobranças de um aluno. Com `equipe`, permite dar baixa, editar e cancelar. */
+/** Cobranças de um aluno. Com `equipe`, permite registrar o pagamento, editar e cancelar. */
 function Extrato({
   alunoId,
   equipe,
@@ -303,15 +332,15 @@ function Extrato({
   equipe: boolean;
   /** Muda quando alguém de fora lançou uma cobrança: busca de novo. */
   versao?: number;
-  /** Algo mudou (baixa, edição…): quem lista os alunos precisa recarregar. */
+  /** Algo mudou (pagamento, edição…): quem lista os alunos precisa recarregar. */
   aoMudar?: () => void;
   acao?: React.ReactNode;
   contatos?: ResumoFinanceiro["alunos"][number]["responsaveis"];
 }) {
   const extrato = useApi<ExtratoAluno>(`/financeiro/alunos/${alunoId}`);
   const [erro, setErro] = useState<string | null>(null);
-  /** Cobrança com um formulário aberto (baixa ou edição). */
-  const [acaoAberta, setAcaoAberta] = useState<{ id: string; modo: "baixa" | "editar" } | null>(null);
+  /** Cobrança com um formulário aberto (pagamento ou edição). */
+  const [acaoAberta, setAcaoAberta] = useState<{ id: string; modo: "pagar" | "editar" } | null>(null);
   const aceitar = useConfirmar();
   const { recarregar } = extrato;
   useEffect(() => {
@@ -330,11 +359,11 @@ function Extrato({
     }
   }
 
-  async function desfazerBaixa(c: Cobranca) {
+  async function desfazerPagamento(c: Cobranca) {
     const ok = await aceitar({
-      titulo: "Desfazer a baixa?",
+      titulo: "Desfazer o pagamento?",
       mensagem: <>“{c.descricao}” ({reais(c.valorCentavos)}) volta a constar como não paga.</>,
-      confirmar: "Desfazer baixa",
+      confirmar: "Desfazer pagamento",
       perigo: true,
     });
     if (ok) await executar(() => api(`/financeiro/cobrancas/${c.id}/pagamento`, { method: "DELETE" }));
@@ -408,122 +437,92 @@ function Extrato({
           />
         </Cartao>
       ) : (
-        <Cartao>
-          <ul className="divide-border divide-y">
-            {cobrancas.map((c) => (
-              <li key={c.id} className={`p-4 ${c.situacao === "cancelada" ? "opacity-60" : ""}`}>
-                <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-text font-medium">{c.descricao}</p>
-                      <Etiqueta>{NOME_TIPO_COBRANCA[c.tipo]}</Etiqueta>
-                      <Etiqueta tom={TOM_SITUACAO[c.situacao]}>{NOME_SITUACAO[c.situacao]}</Etiqueta>
+        <>
+          {equipe && (
+            <p className="text-text-muted mb-2 text-xs">
+              Quando o aluno pagar, use “Registrar pagamento” na cobrança: você informa o valor recebido, a data e a forma.
+            </p>
+          )}
+          <Cartao>
+            <ul className="divide-border divide-y">
+              {cobrancas.map((c) => (
+                <li key={c.id} className={`p-4 ${c.situacao === "cancelada" ? "opacity-60" : ""}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-text font-medium">{c.descricao}</p>
+                        <Etiqueta>{NOME_TIPO_COBRANCA[c.tipo]}</Etiqueta>
+                        <Etiqueta tom={TOM_SITUACAO[c.situacao]}>{NOME_SITUACAO[c.situacao]}</Etiqueta>
+                      </div>
+                      <p className="text-text-muted mt-1 text-xs">
+                        {c.pagoEm
+                          ? `Paga em ${dataBr(c.pagoEm)}${c.formaPagamento ? ` · ${NOME_FORMA_PAGAMENTO[c.formaPagamento]}` : ""} · vencia em ${dataBr(c.vencimento)}`
+                          : `${c.situacao === "atrasada" ? "Venceu" : "Vence"} em ${dataBr(c.vencimento)}`}
+                      </p>
+                      {c.valorPagoCentavos !== null && c.valorPagoCentavos !== c.valorCentavos && (
+                        <p className="text-text-secondary mt-1 text-xs">
+                          Valor recebido: <strong>{reais(c.valorPagoCentavos)}</strong> (cobrado {reais(c.valorCentavos)})
+                        </p>
+                      )}
+                      {equipe && c.observacao && <p className="text-text-secondary mt-1 text-xs">Anotação: {c.observacao}</p>}
                     </div>
-                    <p className="text-text-muted mt-1 text-xs">
-                      {c.pagoEm
-                        ? `Paga em ${dataBr(c.pagoEm)}${c.formaPagamento ? ` · ${NOME_FORMA_PAGAMENTO[c.formaPagamento]}` : ""} · vencia em ${dataBr(c.vencimento)}`
-                        : `${c.situacao === "atrasada" ? "Venceu" : "Vence"} em ${dataBr(c.vencimento)}`}
+                    <p className={`text-base font-semibold whitespace-nowrap ${c.situacao === "atrasada" ? "text-danger" : "text-text"}`}>
+                      {reais(c.valorPagoCentavos ?? c.valorCentavos)}
                     </p>
-                    {equipe && c.observacao && <p className="text-text-secondary mt-1 text-xs">Anotação: {c.observacao}</p>}
                   </div>
-                  <p className={`text-base font-semibold whitespace-nowrap ${c.situacao === "atrasada" ? "text-danger" : "text-text"}`}>
-                    {reais(c.valorCentavos)}
-                  </p>
-                </div>
-
-                {equipe && acaoAberta?.id !== c.id && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(c.situacao === "pendente" || c.situacao === "atrasada") && (
-                      <>
-                        <Botao onClick={() => setAcaoAberta({ id: c.id, modo: "baixa" })}>
-                          <Check className="size-4" aria-hidden />
-                          Dar baixa
+  
+                  {equipe && acaoAberta?.id !== c.id && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(c.situacao === "pendente" || c.situacao === "atrasada") && (
+                        <>
+                          <Botao onClick={() => setAcaoAberta({ id: c.id, modo: "pagar" })}>
+                            <Check className="size-4" aria-hidden />
+                            Registrar pagamento
+                          </Botao>
+                          <Botao variante="secundario" onClick={() => setAcaoAberta({ id: c.id, modo: "editar" })}>
+                            Editar
+                          </Botao>
+                        </>
+                      )}
+                      {c.situacao === "paga" && (
+                        <Botao variante="secundario" onClick={() => desfazerPagamento(c)}>
+                          Desfazer pagamento
                         </Botao>
-                        <Botao variante="secundario" onClick={() => setAcaoAberta({ id: c.id, modo: "editar" })}>
-                          Editar
+                      )}
+                      {c.situacao !== "paga" && (
+                        <Botao
+                          variante={c.situacao === "cancelada" ? "secundario" : "perigo"}
+                          onClick={() => alternarCancelada(c)}
+                        >
+                          {c.situacao === "cancelada" ? "Reativar" : "Cancelar"}
                         </Botao>
-                      </>
-                    )}
-                    {c.situacao === "paga" && (
-                      <Botao variante="secundario" onClick={() => desfazerBaixa(c)}>
-                        Desfazer baixa
-                      </Botao>
-                    )}
-                    {c.situacao !== "paga" && (
-                      <Botao
-                        variante={c.situacao === "cancelada" ? "secundario" : "perigo"}
-                        onClick={() => alternarCancelada(c)}
-                      >
-                        {c.situacao === "cancelada" ? "Reativar" : "Cancelar"}
-                      </Botao>
-                    )}
-                  </div>
-                )}
-
-                {acaoAberta?.id === c.id && acaoAberta.modo === "baixa" && (
-                  <FormBaixa
-                    hoje={hoje}
-                    aoFechar={() => setAcaoAberta(null)}
-                    aoSalvar={(body) => executar(() => api(`/financeiro/cobrancas/${c.id}/pagamento`, { method: "POST", body }))}
-                  />
-                )}
-                {acaoAberta?.id === c.id && acaoAberta.modo === "editar" && (
-                  <FormEdicao
-                    cobranca={c}
-                    aoFechar={() => setAcaoAberta(null)}
-                    aoSalvar={(body) => executar(() => api(`/financeiro/cobrancas/${c.id}`, { method: "PATCH", body }))}
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
-        </Cartao>
+                      )}
+                    </div>
+                  )}
+  
+                  {acaoAberta?.id === c.id && acaoAberta.modo === "pagar" && (
+                    <FormPagamento
+                      hoje={hoje}
+                      valorCentavos={c.valorCentavos}
+                      entrada
+                      aoFechar={() => setAcaoAberta(null)}
+                      aoSalvar={(body) => executar(() => api(`/financeiro/cobrancas/${c.id}/pagamento`, { method: "POST", body }))}
+                    />
+                  )}
+                  {acaoAberta?.id === c.id && acaoAberta.modo === "editar" && (
+                    <FormEdicao
+                      cobranca={c}
+                      aoFechar={() => setAcaoAberta(null)}
+                      aoSalvar={(body) => executar(() => api(`/financeiro/cobrancas/${c.id}`, { method: "PATCH", body }))}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Cartao>
+        </>
       )}
     </>
-  );
-}
-
-function FormBaixa({
-  hoje,
-  aoFechar,
-  aoSalvar,
-}: {
-  hoje: string;
-  aoFechar: () => void;
-  aoSalvar: (body: { pagoEm: string; formaPagamento: FormaPagamento }) => Promise<void>;
-}) {
-  const [pagoEm, setPagoEm] = useState(hoje);
-  const [forma, setForma] = useState<FormaPagamento>("pix");
-  const [salvando, setSalvando] = useState(false);
-  return (
-    <form
-      className="bg-bg mt-3 flex flex-wrap items-end gap-3 rounded-lg p-3"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setSalvando(true);
-        await aoSalvar({ pagoEm, formaPagamento: forma });
-        setSalvando(false);
-      }}
-    >
-      <div className="w-44">
-        <Campo rotulo="Recebido em" type="date" required max={hoje} value={pagoEm} onChange={(e) => setPagoEm(e.target.value)} />
-      </div>
-      <div className="w-44">
-        <Campo tipo="select" rotulo="Forma de pagamento" value={forma} onChange={(e) => setForma(e.target.value as FormaPagamento)}>
-          {FORMAS.map((f) => (
-            <option key={f} value={f}>
-              {NOME_FORMA_PAGAMENTO[f]}
-            </option>
-          ))}
-        </Campo>
-      </div>
-      <Botao type="submit" carregando={salvando}>
-        Confirmar baixa
-      </Botao>
-      <Botao type="button" variante="fantasma" onClick={aoFechar}>
-        Cancelar
-      </Botao>
-    </form>
   );
 }
 
@@ -538,7 +537,7 @@ function FormEdicao({
 }) {
   const [tipo, setTipo] = useState(c.tipo);
   const [descricao, setDescricao] = useState(c.descricao);
-  const [valor, setValor] = useState((c.valorCentavos / 100).toFixed(2).replace(".", ","));
+  const [valor, setValor] = useState(centavosParaCampo(c.valorCentavos));
   const [vencimento, setVencimento] = useState(c.vencimento);
   const [observacao, setObservacao] = useState(c.observacao ?? "");
   const [erro, setErro] = useState<string | null>(null);
