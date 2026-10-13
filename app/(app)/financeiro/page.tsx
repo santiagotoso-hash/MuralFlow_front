@@ -470,7 +470,7 @@ function Extrato({
                       {reais(c.valorPagoCentavos ?? c.valorCentavos)}
                     </p>
                   </div>
-  
+
                   {equipe && acaoAberta?.id !== c.id && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(c.situacao === "pendente" || c.situacao === "atrasada") && (
@@ -499,7 +499,7 @@ function Extrato({
                       )}
                     </div>
                   )}
-  
+
                   {acaoAberta?.id === c.id && acaoAberta.modo === "pagar" && (
                     <FormPagamento
                       hoje={hoje}
