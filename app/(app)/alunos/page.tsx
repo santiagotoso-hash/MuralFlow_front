@@ -1,6 +1,6 @@
 "use client";
 
-import { Cake, Pencil, Users } from "lucide-react";
+import { Cake, ChevronRight, CircleAlert, Pencil, Users } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
@@ -8,8 +8,8 @@ import { useConfirmar } from "@/components/Confirmacao";
 import { BotoesContato } from "@/components/contato";
 import { Avatar, Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
-import { aniversarioHoje, dataAniversario, NOME_TURNO } from "@/lib/formatar";
-import type { Aluno, Turma } from "@/lib/tipos";
+import { aniversarioHoje, dataAniversario, dataBr, NOME_TURNO, reais } from "@/lib/formatar";
+import type { Aluno, PendenciaAluno, Turma } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 function idade(dataNascimento: string | null) {
@@ -30,6 +30,10 @@ export default function Alunos() {
   const financeiro = usuario?.papel === "financeiro";
   const turmas = useApi<Turma[]>(familia || financeiro ? null : "/turmas");
   const alunos = useApi<Aluno[]>(`/alunos${turmaId ? `?turmaId=${turmaId}` : ""}`);
+  // Cobranças vencidas: financeiro e direção veem de todos; a família, dos
+  // próprios filhos. Professores não veem finanças.
+  const pendencias = useApi<PendenciaAluno[]>(usuario && usuario.papel !== "professor" ? "/financeiro/pendencias" : null);
+  const pendenciaDe = new Map((pendencias.dados ?? []).map((p) => [p.alunoId, p]));
 
   if (!usuario) return null;
 
@@ -78,6 +82,7 @@ export default function Alunos() {
             key={a.id}
             aluno={a}
             familia={familia}
+            pendencia={pendenciaDe.get(a.id)}
             aoSalvar={(novo) => alunos.setDados((l) => l?.map((x) => (x.id === novo.id ? { ...x, ...novo } : x)) ?? null)}
           />
         ))}
@@ -86,7 +91,18 @@ export default function Alunos() {
   );
 }
 
-function CartaoAluno({ aluno: a, familia, aoSalvar }: { aluno: Aluno; familia: boolean; aoSalvar: (a: Aluno) => void }) {
+function CartaoAluno({
+  aluno: a,
+  familia,
+  pendencia,
+  aoSalvar,
+}: {
+  aluno: Aluno;
+  familia: boolean;
+  /** Cobrança vencida e não paga (só para quem pode ver finanças). */
+  pendencia?: PendenciaAluno;
+  aoSalvar: (a: Aluno) => void;
+}) {
   const [editando, setEditando] = useState(false);
   const [data, setData] = useState(a.dataNascimento ?? "");
   const [erro, setErro] = useState<string | null>(null);
@@ -116,11 +132,19 @@ function CartaoAluno({ aluno: a, familia, aoSalvar }: { aluno: Aluno; familia: b
   }
 
   return (
-    <Cartao className="p-5">
+    <Cartao className={`p-5 ${pendencia ? "border-danger! bg-danger-subtle!" : ""}`}>
       <div className="flex items-center gap-3">
         <Avatar nome={a.nome} />
         <div className="min-w-0 flex-1">
-          <p className="text-text truncate font-semibold">{a.nome}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-text truncate font-semibold">{a.nome}</p>
+            {pendencia && (
+              <span className="bg-danger text-surface inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold">
+                <CircleAlert className="size-3" aria-hidden />
+                Pendência
+              </span>
+            )}
+          </div>
           <p className="text-text-muted text-xs">
             {anos !== null && `${anos} anos · `}
             Matrícula {a.matricula ?? "—"}
@@ -194,6 +218,24 @@ function CartaoAluno({ aluno: a, familia, aoSalvar }: { aluno: Aluno; familia: b
         <Link href="/saude" className="mt-2 block text-xs">
           {a.alergias && <span className="text-danger block font-medium">Alergia: {a.alergias}</span>}
           {a.restricoesAlimentares && <span className="text-text-secondary block">Restrição: {a.restricoesAlimentares}</span>}
+        </Link>
+      )}
+      {pendencia && (
+        <Link
+          href={`/financeiro?aluno=${a.id}`}
+          className="bg-surface border-danger text-danger mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:underline"
+        >
+          <span className="min-w-0 flex-1">
+            {reais(pendencia.atrasadoCentavos)} em atraso
+            <span className="block text-xs font-normal">
+              {pendencia.quantidade === 1 ? "1 cobrança vencida" : `${pendencia.quantidade} cobranças vencidas`}, desde{" "}
+              {dataBr(pendencia.desde)}
+            </span>
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-0.5">
+            Ver pendência
+            <ChevronRight className="size-4" aria-hidden />
+          </span>
         </Link>
       )}
       {!familia && a.responsaveis && (

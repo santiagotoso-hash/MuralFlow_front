@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowLeft, Check, ChevronRight, Plus, Wallet, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
 import { Abas, Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
@@ -26,24 +27,35 @@ const TIPOS = Object.keys(NOME_TIPO_COBRANCA) as TipoCobranca[];
 type AbaEquipe = "alunos" | "despesas" | "categorias";
 
 export default function PaginaFinanceiro() {
+  // useSearchParams pede um Suspense em volta.
+  return (
+    <Suspense fallback={<Carregando />}>
+      <Conteudo />
+    </Suspense>
+  );
+}
+
+function Conteudo() {
   const { usuario } = useSessao();
+  // /financeiro?aluno=<id>: o link "Ver pendência" da tela Alunos.
+  const alunoDoLink = useSearchParams().get("aluno");
   if (!usuario) return null;
   if (usuario.papel === "professor") return <Erro mensagem="Área do financeiro e da direção." />;
 
   return usuario.papel === "responsavel" ? (
     <>
       <Cabecalho titulo="Financeiro" descricao="Matrícula, mensalidades e compras dos seus filhos." />
-      <FinanceiroFamilia filhos={usuario.filhos ?? []} />
+      <FinanceiroFamilia filhos={usuario.filhos ?? []} alunoDoLink={alunoDoLink} />
     </>
   ) : (
-    <FinanceiroEquipe />
+    <FinanceiroEquipe alunoDoLink={alunoDoLink} />
   );
 }
 
 /* ───────────────────────────── Família ───────────────────────────── */
 
-function FinanceiroFamilia({ filhos }: { filhos: Aluno[] }) {
-  const [alunoId, setAlunoId] = useState(filhos[0]?.id ?? "");
+function FinanceiroFamilia({ filhos, alunoDoLink }: { filhos: Aluno[]; alunoDoLink: string | null }) {
+  const [alunoId, setAlunoId] = useState(filhos.find((f) => f.id === alunoDoLink)?.id ?? filhos[0]?.id ?? "");
   if (filhos.length === 0) {
     return (
       <Cartao>
@@ -61,7 +73,7 @@ function FinanceiroFamilia({ filhos }: { filhos: Aluno[] }) {
           setAtiva={setAlunoId}
         />
       )}
-      <Extrato key={alunoId} alunoId={alunoId} equipe={false} />
+      <Extrato key={alunoId} alunoId={alunoId} equipe={false} irParaPendencia={alunoId === alunoDoLink} />
       <p className="text-text-muted mt-4 text-xs">
         Os pagamentos são registrados pela escola. Se algo não estiver certo, fale com a secretaria em Mensagens.
       </p>
@@ -71,12 +83,13 @@ function FinanceiroFamilia({ filhos }: { filhos: Aluno[] }) {
 
 /* ─────────────────────── Financeiro e direção ─────────────────────── */
 
-function FinanceiroEquipe() {
+function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
+  const router = useRouter();
   const [aba, setAba] = useState<AbaEquipe>("alunos");
   const [turmaId, setTurmaId] = useState("");
   const [busca, setBusca] = useState("");
   const [soAtraso, setSoAtraso] = useState(false);
-  const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [abertoId, setAbertoId] = useState<string | null>(alunoDoLink);
   const [lancando, setLancando] = useState(false);
   /** Sobe a cada lançamento: o extrato aberto busca de novo. */
   const [versao, setVersao] = useState(0);
@@ -101,7 +114,11 @@ function FinanceiroEquipe() {
       <>
         <button
           type="button"
-          onClick={() => setAbertoId(null)}
+          onClick={() => {
+            setAbertoId(null);
+            // Veio pelo link de pendência: tira o ?aluno= do endereço.
+            if (alunoDoLink) router.replace("/financeiro");
+          }}
           className="text-text-secondary hover:text-text mb-4 inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium"
         >
           <ArrowLeft className="size-4" aria-hidden />
@@ -123,6 +140,7 @@ function FinanceiroEquipe() {
           key={abertoId}
           alunoId={abertoId}
           equipe
+          irParaPendencia={abertoId === alunoDoLink}
           versao={versao}
           aoMudar={recarregar}
           acao={
@@ -269,12 +287,21 @@ function FinanceiroEquipe() {
                   </thead>
                   <tbody className="divide-border divide-y">
                     {alunos.map((a) => (
-                      <tr key={a.id} onClick={() => setAbertoId(a.id)} className="hover:bg-bg cursor-pointer">
+                      <tr
+                      key={a.id}
+                      onClick={() => setAbertoId(a.id)}
+                      className={`cursor-pointer ${a.atrasadoCentavos > 0 ? "bg-danger-subtle" : "hover:bg-bg"}`}
+                    >
                         <td className="px-4 py-3">
                           <button type="button" className="text-text cursor-pointer text-left font-medium">
                             {a.nome}
                           </button>
                           <p className="text-text-muted text-xs">{a.turma?.nome ?? "Sem turma"}</p>
+                        {a.atrasadoCentavos > 0 && (
+                          <span className="mt-1 inline-block">
+                            <Etiqueta tom="perigo">Pendência</Etiqueta>
+                          </span>
+                        )}
                         </td>
                         <td className="text-text-secondary px-4 py-3">
                           {a.responsaveis.length === 0 && <span className="text-text-muted">—</span>}
@@ -323,6 +350,7 @@ function FinanceiroEquipe() {
 function Extrato({
   alunoId,
   equipe,
+  irParaPendencia,
   versao,
   aoMudar,
   acao,
@@ -330,6 +358,8 @@ function Extrato({
 }: {
   alunoId: string;
   equipe: boolean;
+  /** Veio do link "Ver pendência": rola até a primeira cobrança vencida. */
+  irParaPendencia?: boolean;
   /** Muda quando alguém de fora lançou uma cobrança: busca de novo. */
   versao?: number;
   /** Algo mudou (pagamento, edição…): quem lista os alunos precisa recarregar. */
@@ -346,6 +376,16 @@ function Extrato({
   useEffect(() => {
     if (versao) recarregar();
   }, [versao, recarregar]);
+
+  // Uma vez, quando o extrato chega: leva a tela até a primeira vencida.
+  const primeiraVencida = useRef<HTMLLIElement>(null);
+  const jaRolou = useRef(false);
+  const carregado = !!extrato.dados;
+  useEffect(() => {
+    if (!irParaPendencia || !carregado || jaRolou.current) return;
+    jaRolou.current = true;
+    primeiraVencida.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [irParaPendencia, carregado]);
 
   async function executar(chamada: () => Promise<unknown>) {
     setErro(null);
@@ -445,8 +485,14 @@ function Extrato({
           )}
           <Cartao>
             <ul className="divide-border divide-y">
-              {cobrancas.map((c) => (
-                <li key={c.id} className={`p-4 ${c.situacao === "cancelada" ? "opacity-60" : ""}`}>
+              {cobrancas.map((c, i) => (
+                <li
+                  key={c.id}
+                  ref={c.situacao === "atrasada" && cobrancas.findIndex((x) => x.situacao === "atrasada") === i ? primeiraVencida : undefined}
+                  className={`p-4 ${c.situacao === "cancelada" ? "opacity-60" : ""} ${
+                    c.situacao === "atrasada" ? "bg-danger-subtle border-danger border-l-4" : ""
+                  }`}
+                >
                   <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

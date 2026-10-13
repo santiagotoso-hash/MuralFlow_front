@@ -142,6 +142,15 @@ export interface ResumoFinanceiro {
   }[];
 }
 
+/** GET /financeiro/pendencias: aluno com cobrança vencida e não paga. */
+export interface PendenciaAluno {
+  alunoId: string;
+  atrasadoCentavos: number;
+  quantidade: number;
+  /** Vencimento da mais antiga, "AAAA-MM-DD". */
+  desde: string;
+}
+
 /** Categoria de despesa (Aluguel, Energia…), criada e renomeada pela escola. */
 export interface CategoriaDespesa {
   id: string;
