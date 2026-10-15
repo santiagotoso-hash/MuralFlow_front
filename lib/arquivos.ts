@@ -97,7 +97,7 @@ export async function baixarRecibo(dados: DadosRecibo) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
   const frase = limpo(
-    `Recebemos de ${aluno.nome} a quantia de ${reais(c.valorPagoCentavos ?? c.valorCentavos)}, referente a ${c.descricao}.`,
+    `Recebemos referente ao aluno ${aluno.nome} a quantia de ${reais(c.valorPagoCentavos ?? c.valorCentavos)}, referente a ${c.descricao}.`,
   );
   const quebrada = doc.splitTextToSize(frase, direita - esquerda) as string[];
   doc.text(quebrada, esquerda, y);
