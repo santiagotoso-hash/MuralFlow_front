@@ -11,8 +11,8 @@ import {
 import Link from "next/link";
 import { useSessao } from "@/components/AuthProvider";
 import { Cartao, Erro, Etiqueta } from "@/components/ui";
-import { aniversarioHoje, dataCurta, diasAte, hora, NOME_CATEGORIA, NOME_TIPO_EVENTO, tempoRelativo, TRATAMENTO } from "@/lib/formatar";
-import type { Aluno, Comunicado, Conversa, Evento } from "@/lib/tipos";
+import { aniversarioHoje, chaveDia, dataCurta, diasAte, hora, NOME_CATEGORIA, NOME_TIPO_EVENTO, tempoRelativo, TRATAMENTO } from "@/lib/formatar";
+import type { Aluno, Comunicado, Conversa, Evento, TarefaDiario } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 function saudacao() {
@@ -27,6 +27,12 @@ export default function Painel() {
   const conversas = useApi<Conversa[]>("/conversas");
   // Equipe: alunos das suas turmas, para os aniversariantes do dia.
   const alunos = useApi<Aluno[]>(usuario && usuario.papel !== "responsavel" ? "/alunos" : null);
+  // Família: tarefas de casa das próximas duas semanas.
+  const hoje = chaveDia(new Date().toISOString());
+  const daqui2Semanas = new Date(Date.parse(`${hoje}T12:00:00Z`) + 14 * 86_400_000).toISOString().slice(0, 10);
+  const tarefas = useApi<TarefaDiario[]>(
+    usuario?.papel === "responsavel" ? `/diario/tarefas?de=${hoje}&ate=${daqui2Semanas}` : null,
+  );
 
   if (!usuario) return null;
   const familia = usuario.papel === "responsavel";
@@ -163,6 +169,41 @@ export default function Painel() {
         </Cartao>
 
         <div className="space-y-6">
+        {familia && (
+          <Cartao>
+            <div className="border-border flex items-center justify-between border-b px-5 py-4">
+              <h2 className="text-text font-semibold">Próximas tarefas</h2>
+              <Link href="/diario" className="text-primary text-sm font-medium">
+                Ver tarefas
+              </Link>
+            </div>
+            <ul className="divide-border divide-y">
+              {(tarefas.dados ?? []).slice(0, 4).map((t) => {
+                const feita = !!t.alunos?.length && t.alunos.every((a) => a.concluida);
+                return (
+                  <li key={t.id}>
+                    <Link href="/diario" className="hover:bg-bg flex items-center gap-4 px-5 py-3">
+                      <div className="bg-primary-subtle text-primary w-14 shrink-0 rounded-lg py-1.5 text-center text-xs font-semibold uppercase">
+                        {dataCurta(`${t.entrega}T12:00:00-03:00`).replace(".", "")}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-text truncate text-sm font-medium">{t.titulo}</p>
+                        <p className="text-text-muted truncate text-xs">
+                          {t.disciplina} · {diasAte(`${t.entrega}T12:00:00-03:00`)}
+                          {t.alunos?.length ? ` · ${t.alunos.map((a) => a.nome.split(" ")[0]).join(" e ")}` : ""}
+                        </p>
+                      </div>
+                      {feita && <Etiqueta tom="sucesso">Feita</Etiqueta>}
+                    </Link>
+                  </li>
+                );
+              })}
+              {tarefas.dados && tarefas.dados.length === 0 && (
+                <li className="text-text-muted px-5 py-6 text-sm">Nenhuma tarefa para as próximas duas semanas.</li>
+              )}
+            </ul>
+          </Cartao>
+        )}
         <Cartao>
           <div className="border-border flex items-center justify-between border-b px-5 py-4">
             <h2 className="text-text font-semibold">Próximas provas</h2>

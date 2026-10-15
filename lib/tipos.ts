@@ -142,6 +142,38 @@ export interface ResumoFinanceiro {
   }[];
 }
 
+/** GET /diario/aulas: o que foi dado numa aula (diário de classe). */
+export interface AulaDiario {
+  id: string;
+  turma: { id: string; nome: string };
+  /** "AAAA-MM-DD" */
+  data: string;
+  disciplina: string;
+  conteudo: string;
+  professor: string | null;
+  atualizadaEm: string;
+}
+
+/** GET /diario/tarefas: tarefa de casa. */
+export interface TarefaDiario {
+  id: string;
+  turma: { id: string; nome: string };
+  disciplina: string;
+  titulo: string;
+  descricao: string | null;
+  /** "AAAA-MM-DD" */
+  entrega: string;
+  link: string | null;
+  professor: string | null;
+  /** O prazo já passou. */
+  vencida: boolean;
+  /** Só para a equipe: quantos alunos a família marcou como feita. */
+  concluidas?: number;
+  totalAlunos?: number;
+  /** Só para a família: os filhos desta turma e se marcou como feita. */
+  alunos?: { id: string; nome: string; concluida: boolean }[];
+}
+
 export type SituacaoPresenca = "presente" | "falta" | "falta_justificada" | "atraso";
 
 /** GET /chamada/turmas/:id?data= : a chamada da turma num dia. */
