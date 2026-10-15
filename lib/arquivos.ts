@@ -1,5 +1,6 @@
 /** Arquivos gerados no navegador: planilha (CSV) e recibo (PDF). */
 
+import { type Declaracao, formatarCodigo, localEData, NOME_TIPO_DECLARACAO, textoDaDeclaracao } from "./declaracoes";
 import { dataBr, NOME_FORMA_PAGAMENTO, NOME_TIPO_COBRANCA, reais } from "./formatar";
 import type { Cobranca } from "./tipos";
 
@@ -126,4 +127,77 @@ export async function baixarRecibo(dados: DadosRecibo) {
 
   const nomeArquivo = `recibo-${numero}-${aluno.nome.split(" ")[0].toLowerCase()}.pdf`.normalize("NFD").replace(/[̀-ͯ]/g, "");
   baixar(nomeArquivo, doc.output("blob"));
+}
+
+/**
+ * Declaração em PDF (A4): cabeçalho com os dados da escola, o texto, local
+ * e data, a linha de assinatura e, no rodapé, o código de verificação e o
+ * endereço onde qualquer pessoa confere o documento.
+ */
+export async function baixarDeclaracao(d: Declaracao, urlVerificacao: string) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const limpo = (t: string) => t.replace(/[\u00a0\u202f]/g, " ").replace(/[“”]/g, '"').replace(/—/g, "-");
+  const { escola } = d.conteudo;
+  const esquerda = 25;
+  const direita = 185;
+  const largura = direita - esquerda;
+  let y = 28;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text(limpo(escola.nome), 105, y, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  for (const linha of [escola.cnpj ? `CNPJ ${escola.cnpj}` : null, escola.endereco].filter(Boolean) as string[]) {
+    y += 5;
+    doc.text(limpo(linha), 105, y, { align: "center" });
+  }
+  y += 6;
+  doc.setDrawColor(200);
+  doc.line(esquerda, y, direita, y);
+
+  y += 22;
+  doc.setTextColor(0);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text(limpo(NOME_TIPO_DECLARACAO[d.tipo].replace(/ \(.*\)$/, "").toUpperCase()), 105, y, { align: "center" });
+
+  y += 16;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  for (const paragrafo of textoDaDeclaracao(d)) {
+    const linhas = doc.splitTextToSize(limpo(paragrafo), largura) as string[];
+    doc.text(linhas, esquerda, y, { align: "justify", maxWidth: largura, lineHeightFactor: 1.6 });
+    y += linhas.length * 7.7 + 5;
+  }
+
+  y += 8;
+  doc.text(limpo(localEData(d)), direita, y, { align: "right" });
+
+  y += 34;
+  doc.setDrawColor(0);
+  doc.line(65, y, 145, y);
+  y += 6;
+  doc.setFontSize(11);
+  doc.text(limpo(escola.assinatura ?? "Secretaria escolar"), 105, y, { align: "center" });
+  y += 5;
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  doc.text(limpo(escola.nome), 105, y, { align: "center" });
+
+  // Rodapé: como conferir.
+  const base = 272;
+  doc.setDrawColor(220);
+  doc.line(esquerda, base - 6, direita, base - 6);
+  doc.setFontSize(9);
+  doc.setTextColor(70);
+  doc.text(`Código de verificação: ${formatarCodigo(d.codigo)}`, esquerda, base);
+  doc.text(limpo(`Confira a autenticidade em ${urlVerificacao}`), esquerda, base + 5);
+  const emitida = new Date(d.emitidaEm).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
+  doc.text(limpo(`Documento emitido eletronicamente pelo MuralFlow em ${emitida}.`), esquerda, base + 10);
+
+  const primeiroNome = d.conteudo.aluno.nome.split(" ")[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  baixar(`declaracao-${d.tipo}-${primeiroNome}-${d.codigo}.pdf`, doc.output("blob"));
 }

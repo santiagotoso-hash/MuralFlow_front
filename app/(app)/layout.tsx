@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   Ellipsis,
+  FileText,
   GraduationCap,
   HeartPulse,
   House,
@@ -35,13 +36,14 @@ interface ItemMenu {
 }
 
 /** O financeiro só tem estas telas (a API bloqueia o resto). */
-const TELAS_DO_FINANCEIRO = ["/financeiro", "/alunos", "/perfil"];
+const TELAS_DO_FINANCEIRO = ["/financeiro", "/alunos", "/declaracoes", "/perfil"];
 
 function menu(papel: Papel): ItemMenu[] {
   if (papel === "financeiro") {
     return [
       { href: "/financeiro", rotulo: "Financeiro", icone: Wallet },
       { href: "/alunos", rotulo: "Alunos", icone: Users },
+      { href: "/declaracoes", rotulo: "Declarações", icone: FileText },
       { href: "/perfil", rotulo: "Perfil", icone: UserRound },
     ];
   }
@@ -61,6 +63,7 @@ function menu(papel: Papel): ItemMenu[] {
       rotulo: papel === "responsavel" ? "Meus filhos" : "Alunos",
       icone: Users,
     },
+    { href: "/declaracoes", rotulo: "Declarações", icone: FileText, papeis: ["admin", "responsavel"] },
     { href: "/professores", rotulo: "Professores", icone: Presentation, papeis: ["admin", "professor"] },
     { href: "/gestao", rotulo: "Gestão", icone: Settings, papeis: ["admin"] },
     { href: "/perfil", rotulo: "Perfil", icone: UserRound },
