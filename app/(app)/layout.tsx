@@ -5,12 +5,14 @@ import {
   ClipboardCheck,
   ClipboardList,
   Ellipsis,
+  FileText,
   GraduationCap,
   HeartPulse,
   House,
   LogOut,
   Megaphone,
   MessageCircle,
+  NotebookPen,
   Presentation,
   Settings,
   UserRound,
@@ -34,13 +36,14 @@ interface ItemMenu {
 }
 
 /** O financeiro só tem estas telas (a API bloqueia o resto). */
-const TELAS_DO_FINANCEIRO = ["/financeiro", "/alunos", "/perfil"];
+const TELAS_DO_FINANCEIRO = ["/financeiro", "/alunos", "/declaracoes", "/perfil"];
 
 function menu(papel: Papel): ItemMenu[] {
   if (papel === "financeiro") {
     return [
       { href: "/financeiro", rotulo: "Financeiro", icone: Wallet },
       { href: "/alunos", rotulo: "Alunos", icone: Users },
+      { href: "/declaracoes", rotulo: "Declarações", icone: FileText },
       { href: "/perfil", rotulo: "Perfil", icone: UserRound },
     ];
   }
@@ -50,6 +53,7 @@ function menu(papel: Papel): ItemMenu[] {
     { href: "/agenda", rotulo: "Agenda", icone: CalendarDays },
     { href: "/mensagens", rotulo: "Mensagens", icone: MessageCircle },
     { href: "/chamada", rotulo: papel === "responsavel" ? "Frequência" : "Chamada", icone: ClipboardCheck },
+    { href: "/diario", rotulo: papel === "responsavel" ? "Tarefas" : "Diário de classe", icone: NotebookPen },
     { href: "/provas", rotulo: "Provas", icone: ClipboardList },
     { href: "/boletim", rotulo: "Boletim", icone: GraduationCap },
     { href: "/saude", rotulo: "Saúde", icone: HeartPulse },
@@ -59,6 +63,7 @@ function menu(papel: Papel): ItemMenu[] {
       rotulo: papel === "responsavel" ? "Meus filhos" : "Alunos",
       icone: Users,
     },
+    { href: "/declaracoes", rotulo: "Declarações", icone: FileText, papeis: ["admin", "responsavel"] },
     { href: "/professores", rotulo: "Professores", icone: Presentation, papeis: ["admin", "professor"] },
     { href: "/gestao", rotulo: "Gestão", icone: Settings, papeis: ["admin"] },
     { href: "/perfil", rotulo: "Perfil", icone: UserRound },
