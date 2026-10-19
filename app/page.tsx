@@ -1,5 +1,6 @@
-import { CalendarDays, Check, Megaphone, MessageCircle } from "lucide-react";
+import { CalendarDays, Check, Mail, Megaphone, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import BotaoApresentacao from "@/components/BotaoApresentacao";
 import Logo from "@/components/Logo";
 
 const RECURSOS = [
@@ -23,6 +24,13 @@ const RECURSOS = [
   },
 ];
 
+// Contato comercial: dá para trocar pelas variáveis de ambiente sem mexer no código.
+const WHATSAPP = (process.env.NEXT_PUBLIC_CONTATO_WHATSAPP ?? "5571999991778").replace(/\D/g, "");
+const EMAIL = process.env.NEXT_PUBLIC_CONTATO_EMAIL ?? "santiagotoso@gmail.com";
+const MENSAGEM = "Olá! Vi o MuralFlow e quero saber mais para a minha escola.";
+const LINK_WHATSAPP = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(MENSAGEM)}`;
+const LINK_EMAIL = `mailto:${EMAIL}?subject=${encodeURIComponent("Quero conhecer o MuralFlow")}&body=${encodeURIComponent(MENSAGEM)}`;
+
 const PASSOS = [
   "A secretaria cadastra a família e envia o acesso.",
   "O responsável entra e já vê os filhos, as turmas e os avisos.",
@@ -35,12 +43,15 @@ export default function Inicio() {
       <header className="border-border border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <Logo />
-          <Link
-            href="/entrar"
-            className="bg-primary-solid hover:bg-primary-solid-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
-          >
-            Entrar
-          </Link>
+          <div className="flex items-center gap-2">
+            <BotaoApresentacao />
+            <Link
+              href="/entrar"
+              className="bg-primary-solid hover:bg-primary-solid-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+            >
+              Entrar
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -57,20 +68,27 @@ export default function Inicio() {
               Comunicados, agenda e mensagens com os professores em um único
               lugar. Nada de bilhete perdido na mochila.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/entrar"
-                className="bg-primary-solid hover:bg-primary-solid-hover rounded-lg px-6 py-3 font-medium text-white transition-colors"
-              >
-                Acessar minha conta
-              </Link>
+            <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2">
               <a
-                href="#como-funciona"
-                className="text-text-secondary hover:text-text px-4 py-3 font-medium"
+                href={LINK_WHATSAPP}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-primary-solid hover:bg-primary-solid-hover inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium text-white transition-colors"
               >
-                Como funciona →
+                <MessageCircle className="size-5" aria-hidden />
+                Falar no WhatsApp
+              </a>
+              <a
+                href={LINK_EMAIL}
+                className="text-text-secondary hover:text-text inline-flex items-center gap-2 px-4 py-3 font-medium"
+              >
+                <Mail className="size-4" aria-hidden />
+                ou mande um e-mail →
               </a>
             </div>
+            <a href="#como-funciona" className="text-text-muted hover:text-text mt-2 inline-block text-sm font-medium">
+              Como funciona ↓
+            </a>
           </div>
 
           {/* Ilustração: um comunicado e uma mensagem como aparecem no app. */}

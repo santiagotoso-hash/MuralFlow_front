@@ -12,7 +12,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-dvh antialiased">
+      {/* Extensões do navegador (ex.: ColorZilla) põem atributos no body antes do React. */}
+      <body className="min-h-dvh antialiased" suppressHydrationWarning>
         <AuthProvider>
           <ConfirmacaoProvider>{children}</ConfirmacaoProvider>
         </AuthProvider>
