@@ -1,5 +1,6 @@
 import { CalendarDays, Check, Megaphone, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import BotaoApresentacao from "@/components/BotaoApresentacao";
 import Logo from "@/components/Logo";
 
 const RECURSOS = [
@@ -35,12 +36,15 @@ export default function Inicio() {
       <header className="border-border border-b">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <Logo />
-          <Link
-            href="/entrar"
-            className="bg-primary-solid hover:bg-primary-solid-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
-          >
-            Entrar
-          </Link>
+          <div className="flex items-center gap-2">
+            <BotaoApresentacao />
+            <Link
+              href="/entrar"
+              className="bg-primary-solid hover:bg-primary-solid-hover rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+            >
+              Entrar
+            </Link>
+          </div>
         </div>
       </header>
 
