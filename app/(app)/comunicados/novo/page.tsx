@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
@@ -25,11 +26,53 @@ export default function NovoComunicado() {
   const [enviando, setEnviando] = useState(false);
   const aceitar = useConfirmar();
 
+  const [ideia, setIdeia] = useState("");
+  const [gerando, setGerando] = useState(false);
+  const [erroIa, setErroIa] = useState<string | null>(null);
+  const [geradoPorIa, setGeradoPorIa] = useState(false);
+
   // Professor não publica para a escola inteira: pré-seleciona a 1ª turma.
   const turmaEscolhida = turmaId || (admin ? "" : (turmas.dados?.[0]?.id ?? ""));
 
+  async function escreverComIa() {
+    if (titulo || conteudo) {
+      const ok = await aceitar({
+        titulo: "Substituir o texto?",
+        mensagem: <>O título e a mensagem que você já escreveu serão trocados pelo rascunho da IA.</>,
+        confirmar: "Substituir",
+      });
+      if (!ok) return;
+    }
+    setErroIa(null);
+    setGerando(true);
+    try {
+      const r = await api<{
+        titulo: string;
+        conteudo: string;
+        categoria: CategoriaComunicado;
+        exigeCiencia: boolean;
+      }>("/comunicados/rascunho", {
+        method: "POST",
+        body: { ideia, turmaId: turmaEscolhida || undefined },
+      });
+      setTitulo(r.titulo);
+      setConteudo(r.conteudo);
+      setCategoria(r.categoria);
+      setExigeCiencia(r.exigeCiencia);
+      setGeradoPorIa(true);
+    } catch (err) {
+      setErroIa((err as Error).message);
+    } finally {
+      setGerando(false);
+    }
+  }
+
   async function publicar(e: React.FormEvent) {
     e.preventDefault();
+    if (`${titulo}\n${conteudo}`.includes("[A DEFINIR]")) {
+      setErro("Complete os trechos marcados como [A DEFINIR] antes de publicar.");
+      return;
+    }
     const turma = turmas.dados?.find((t) => t.id === turmaEscolhida);
     const ok = await aceitar({
       titulo: "Publicar o comunicado?",
@@ -61,6 +104,34 @@ export default function NovoComunicado() {
   return (
     <>
       <Cabecalho titulo="Novo comunicado" descricao="As famílias veem o aviso assim que você publicar." />
+      <Cartao className="mb-6 max-w-2xl p-6">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="text-primary size-5" aria-hidden />
+            <h2 className="text-text font-semibold">Escrever com IA</h2>
+          </div>
+          <Campo
+            tipo="textarea"
+            rotulo="Sua ideia, do jeito que vier"
+            ajuda="Ex.: reunião de pais quinta às 18h no pátio, trazer o boletim assinado. A IA monta o título e o texto; você revisa antes de publicar. Não inclua dados pessoais ou de saúde dos alunos."
+            rows={3}
+            maxLength={3000}
+            value={ideia}
+            onChange={(e) => setIdeia(e.target.value)}
+          />
+          {erroIa && <Erro mensagem={erroIa} />}
+          <Botao
+            type="button"
+            variante="secundario"
+            carregando={gerando}
+            disabled={ideia.trim().length < 5}
+            onClick={escreverComIa}
+          >
+            {!gerando && <Sparkles className="size-4" aria-hidden />}
+            {gerando ? "Escrevendo..." : "Gerar rascunho"}
+          </Botao>
+        </div>
+      </Cartao>
       <Cartao className="max-w-2xl p-6">
         <form onSubmit={publicar} className="space-y-5">
           <Campo rotulo="Título" required maxLength={150} value={titulo} onChange={(e) => setTitulo(e.target.value)} />
@@ -113,6 +184,11 @@ export default function NovoComunicado() {
               </span>
             </span>
           </label>
+          {geradoPorIa && (
+            <p role="status" className="bg-warning-subtle text-warning rounded-lg px-4 py-3 text-sm">
+              Rascunho escrito pela IA. Confira datas, horários e nomes e complete o que estiver como [A DEFINIR] antes de publicar.
+            </p>
+          )}
           {erro && <Erro mensagem={erro} />}
           <div className="flex gap-3">
             <Botao type="submit" carregando={enviando}>
