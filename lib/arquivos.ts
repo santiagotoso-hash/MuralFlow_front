@@ -1,6 +1,7 @@
 /** Arquivos gerados no navegador: planilha (CSV) e recibo (PDF). */
 
 import { type Declaracao, formatarCodigo, localEData, NOME_TIPO_DECLARACAO, textoDaDeclaracao } from "./declaracoes";
+import { urlDoLogo } from "./escola";
 import { dataBr, NOME_FORMA_PAGAMENTO, NOME_TIPO_COBRANCA, reais } from "./formatar";
 import type { Cobranca } from "./tipos";
 
@@ -37,11 +38,45 @@ export function baixarCsv(nome: string, linhas: (string | number)[][]) {
 /** 125050 → "1250,50": número que a planilha entende (sem "R$" nem ponto de milhar). */
 export const valorParaPlanilha = (centavos: number) => (centavos / 100).toFixed(2).replace(".", ",");
 
+/** Logo da escola pronto para o PDF; null = o documento sai sem logo (nunca falha por causa dele). */
+async function logoParaPdf(caminho?: string | null) {
+  const url = urlDoLogo(caminho);
+  if (!url) return null;
+  try {
+    const blob = await (await fetch(url)).blob();
+    const formato = blob.type === "image/png" ? "PNG" : blob.type === "image/jpeg" ? "JPEG" : null;
+    if (!formato) return null;
+    const dataUrl = await new Promise<string>((ok, falha) => {
+      const leitor = new FileReader();
+      leitor.onload = () => ok(String(leitor.result));
+      leitor.onerror = () => falha(leitor.error);
+      leitor.readAsDataURL(blob);
+    });
+    const { largura, altura } = await new Promise<{ largura: number; altura: number }>((ok, falha) => {
+      const img = new Image();
+      img.onload = () => ok({ largura: img.naturalWidth, altura: img.naturalHeight });
+      img.onerror = falha;
+      img.src = dataUrl;
+    });
+    return { dataUrl, formato, largura, altura } as const;
+  } catch {
+    return null;
+  }
+}
+
+/** Tamanho (mm) que cabe na caixa mantendo a proporção. */
+const caber = (largura: number, altura: number, maxLargura: number, maxAltura: number) => {
+  const k = Math.min(maxLargura / largura, maxAltura / altura);
+  return [largura * k, altura * k] as const;
+};
+
 export interface DadosRecibo {
   cobranca: Cobranca;
   aluno: { nome: string; matricula: string | null; turma: string | null };
   /** Nome da escola de quem está logado (multiescola). Vazio = NOME_DA_ESCOLA. */
   escola?: string | null;
+  /** Caminho do logo da escola na API (IdentidadeEscola.logo). */
+  logo?: string | null;
 }
 
 /** Número curto do recibo, a partir do id da cobrança. */
@@ -72,15 +107,22 @@ export async function baixarRecibo(dados: DadosRecibo) {
   const { jsPDF } = await import("jspdf");
   const { cobranca: c, aluno } = dados;
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const limpo = (t: string) => t.replace(/[  ]/g, " ").replace(/[“”]/g, '"').replace(/—/g, "-");
+  const limpo = (t: string) => t.replace(/[\u00a0\u202f]/g, " ").replace(/[“”]/g, '"').replace(/—/g, "-");
   const numero = numeroDoRecibo(c.id);
   const esquerda = 20;
   const direita = 190;
   let y = 24;
 
+  const logo = await logoParaPdf(dados.logo);
+  let xNome = esquerda;
+  if (logo) {
+    const [l, a] = caber(logo.largura, logo.altura, 40, 14);
+    doc.addImage(logo.dataUrl, logo.formato, esquerda, y - 9, l, a);
+    xNome = esquerda + l + 4;
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text(limpo(dados.escola || NOME_DA_ESCOLA), esquerda, y);
+  doc.text(limpo(dados.escola || NOME_DA_ESCOLA), xNome, y);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(100);
@@ -127,7 +169,7 @@ export async function baixarRecibo(dados: DadosRecibo) {
   y += 5;
   doc.text("Este recibo comprova o pagamento registrado pela escola e não substitui nota fiscal.", esquerda, y);
 
-  const nomeArquivo = `recibo-${numero}-${aluno.nome.split(" ")[0].toLowerCase()}.pdf`.normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const nomeArquivo = `recibo-${numero}-${aluno.nome.split(" ")[0].toLowerCase()}.pdf`.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   baixar(nomeArquivo, doc.output("blob"));
 }
 
@@ -136,7 +178,7 @@ export async function baixarRecibo(dados: DadosRecibo) {
  * e data, a linha de assinatura e, no rodapé, o código de verificação e o
  * endereço onde qualquer pessoa confere o documento.
  */
-export async function baixarDeclaracao(d: Declaracao, urlVerificacao: string) {
+export async function baixarDeclaracao(d: Declaracao, urlVerificacao: string, logoDaEscola?: string | null) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const limpo = (t: string) => t.replace(/[\u00a0\u202f]/g, " ").replace(/[“”]/g, '"').replace(/—/g, "-");
@@ -146,6 +188,12 @@ export async function baixarDeclaracao(d: Declaracao, urlVerificacao: string) {
   const largura = direita - esquerda;
   let y = 28;
 
+  const logo = await logoParaPdf(logoDaEscola);
+  if (logo) {
+    const [l, a] = caber(logo.largura, logo.altura, 50, 18);
+    doc.addImage(logo.dataUrl, logo.formato, 105 - l / 2, 14, l, a);
+    y = 14 + a + 7;
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(15);
   doc.text(limpo(escola.nome), 105, y, { align: "center" });

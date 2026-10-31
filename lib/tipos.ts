@@ -1,6 +1,6 @@
 /* Espelho das entidades da API (back/src/**\/*.entity.ts). */
 
-export type Papel = "admin" | "professor" | "responsavel" | "financeiro";
+export type Papel = "admin" | "professor" | "responsavel" | "financeiro" | "superadmin";
 export type Turno = "manha" | "tarde" | "integral" | "noite";
 export type CategoriaComunicado =
   | "geral"
@@ -34,7 +34,7 @@ export interface Usuario {
   filhos?: Aluno[];
   turmas?: Turma[];
   /** A escola do usuário (multiescola). Vem em /usuarios/eu. */
-  escola?: { id: string; nome: string; slug: string } | null;
+  escola?: IdentidadeEscola | null;
 }
 
 export interface Turma {
@@ -369,4 +369,39 @@ export interface Pauta {
   disciplina: string;
   bimestre: number;
   alunos: { id: string; nome: string; valor: number | null }[];
+}
+
+/** O que o app usa para se vestir com a cara da escola. */
+export interface IdentidadeEscola {
+  id: string;
+  nome: string;
+  slug: string;
+  /** "#RRGGBB" ou null (a cor do MuralFlow). */
+  cor: string | null;
+  /** Caminho da imagem na API ("/escolas/<id>/logo?v=..."), ou null. */
+  logo: string | null;
+}
+
+/** GET /escola (direção) e /plataforma/escolas/:id (superadmin). */
+export interface EscolaCompleta extends IdentidadeEscola {
+  ativa: boolean;
+  cnpj: string | null;
+  endereco: string | null;
+  cidade: string | null;
+  assinatura: string | null;
+  pixChave: string | null;
+  pixNome: string | null;
+  pixCidade: string | null;
+  dadosBancarios: string | null;
+  criadaEm: string;
+  atualizadaEm: string;
+}
+
+/** GET /plataforma/escolas */
+export interface EscolaNaLista extends IdentidadeEscola {
+  ativa: boolean;
+  criadaEm: string;
+  usuarios: number;
+  alunos: number;
+  pixConfigurado: boolean;
 }

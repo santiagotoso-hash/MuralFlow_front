@@ -63,10 +63,15 @@ export const NOME_PAPEL: Record<Papel, string> = {
   professor: "Professor(a)",
   responsavel: "Responsável",
   financeiro: "Financeiro",
+  superadmin: "Superadmin · MuralFlow",
 };
 
-/** Primeira tela de cada papel (o financeiro não tem painel). */
-export const inicioDe = (papel: Papel) => (papel === "financeiro" ? "/financeiro" : "/painel");
+/** Os papéis que a direção pode dar a alguém da escola (o superadmin fica de fora). */
+export const PAPEIS_DA_ESCOLA: Papel[] = ["admin", "professor", "responsavel", "financeiro"];
+
+/** Primeira tela de cada papel (o financeiro e o superadmin não têm painel). */
+export const inicioDe = (papel: Papel) =>
+  papel === "financeiro" ? "/financeiro" : papel === "superadmin" ? "/plataforma" : "/painel";
 
 /** Tratamento na saudação do painel ("Bom dia, Pro Carla!"). */
 export const TRATAMENTO: Record<Papel, string> = {
@@ -74,6 +79,7 @@ export const TRATAMENTO: Record<Papel, string> = {
   professor: "Pro",
   responsavel: "Pai/Mãe",
   financeiro: "Financeiro",
+  superadmin: "",
 };
 
 export const NOME_TURNO: Record<Turno, string> = {
