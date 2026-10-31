@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronRight, FileDown, Plus, Wallet, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, FileDown, Plus, QrCode, Wallet, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
@@ -21,6 +21,7 @@ import {
 import type { Aluno, Cobranca, ExtratoAluno, ResumoFinanceiro, TipoCobranca } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 import { Categorias, Despesas } from "./despesas";
+import { AvisoDePagamento, MensalidadeAutomatica, PainelPagar } from "./pagar";
 import { FormPagamento, Total } from "./pagamento";
 import { Historico, Relatorio } from "./relatorio";
 
@@ -77,7 +78,8 @@ function FinanceiroFamilia({ filhos, alunoDoLink }: { filhos: Aluno[]; alunoDoLi
       )}
       <Extrato key={alunoId} alunoId={alunoId} equipe={false} irParaPendencia={alunoId === alunoDoLink} />
       <p className="text-text-muted mt-4 text-xs">
-        Os pagamentos são registrados pela escola. Se algo não estiver certo, fale com a secretaria em Mensagens.
+        Use “Pagar” em cada cobrança para ver o PIX e os dados bancários. A escola registra o pagamento ao conferir; se algo não
+        estiver certo, fale com a secretaria em Mensagens.
       </p>
     </>
   );
@@ -91,6 +93,7 @@ function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
   const [turmaId, setTurmaId] = useState("");
   const [busca, setBusca] = useState("");
   const [soAtraso, setSoAtraso] = useState(false);
+  const [soAvisos, setSoAvisos] = useState(false);
   const [abertoId, setAbertoId] = useState<string | null>(alunoDoLink);
   const [lancando, setLancando] = useState(false);
   /** Sobe a cada lançamento: o extrato aberto busca de novo. */
@@ -103,11 +106,12 @@ function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
     return (resumo.dados?.alunos ?? []).filter(
       (a) =>
         (!soAtraso || a.atrasadoCentavos > 0) &&
+        (!soAvisos || a.pagamentosInformados > 0) &&
         (!termo ||
           a.nome.toLocaleLowerCase("pt-BR").includes(termo) ||
           a.responsaveis.some((r) => r.nome.toLocaleLowerCase("pt-BR").includes(termo))),
     );
-  }, [resumo.dados, busca, soAtraso]);
+  }, [resumo.dados, busca, soAtraso, soAvisos]);
 
   const aberto = resumo.dados?.alunos.find((a) => a.id === abertoId) ?? null;
 
@@ -239,6 +243,15 @@ function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
             )}
           </div>
 
+          {t.pagamentosInformados > 0 && (
+            <p role="status" className="bg-warning-subtle text-warning mb-4 rounded-lg px-4 py-3 text-sm">
+              {t.pagamentosInformados === 1
+                ? "Uma família avisou que pagou e aguarda conferência."
+                : `${t.pagamentosInformados} pagamentos avisados pelas famílias aguardam conferência.`}{" "}
+              Confira no extrato do banco e registre o pagamento.
+            </p>
+          )}
+
           <div className="mb-4 flex flex-wrap items-end gap-3">
             <div className="w-48">
               <Campo tipo="select" rotulo="Turma" value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>
@@ -268,6 +281,17 @@ function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
               />
               Só em atraso
             </label>
+            {t.pagamentosInformados > 0 && (
+              <label className="text-text flex cursor-pointer items-center gap-2 pb-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="accent-primary-solid size-4"
+                  checked={soAvisos}
+                  onChange={(e) => setSoAvisos(e.target.checked)}
+                />
+                Avisaram que pagaram
+              </label>
+            )}
           </div>
 
           {alunos.length === 0 ? (
@@ -303,9 +327,10 @@ function FinanceiroEquipe({ alunoDoLink }: { alunoDoLink: string | null }) {
                             {a.nome}
                           </button>
                           <p className="text-text-muted text-xs">{a.turma?.nome ?? "Sem turma"}</p>
-                        {a.atrasadoCentavos > 0 && (
-                          <span className="mt-1 inline-block">
-                            <Etiqueta tom="perigo">Pendência</Etiqueta>
+                        {(a.atrasadoCentavos > 0 || a.pagamentosInformados > 0) && (
+                          <span className="mt-1 flex flex-wrap gap-1">
+                            {a.atrasadoCentavos > 0 && <Etiqueta tom="perigo">Pendência</Etiqueta>}
+                            {a.pagamentosInformados > 0 && <Etiqueta tom="alerta">Avisou pagamento</Etiqueta>}
                           </span>
                         )}
                         </td>
@@ -376,7 +401,7 @@ function Extrato({
   const extrato = useApi<ExtratoAluno>(`/financeiro/alunos/${alunoId}`);
   const [erro, setErro] = useState<string | null>(null);
   /** Cobrança com um formulário aberto (pagamento ou edição). */
-  const [acaoAberta, setAcaoAberta] = useState<{ id: string; modo: "pagar" | "editar" } | null>(null);
+  const [acaoAberta, setAcaoAberta] = useState<{ id: string; modo: "pagar" | "editar" | "pix" } | null>(null);
   const aceitar = useConfirmar();
   const { recarregar } = extrato;
   useEffect(() => {
@@ -432,7 +457,7 @@ function Extrato({
 
   if (extrato.erro) return <Erro mensagem={extrato.erro} />;
   if (!extrato.dados) return <Carregando />;
-  const { aluno, totais, cobrancas, hoje } = extrato.dados;
+  const { aluno, totais, cobrancas, hoje, mensalidade, pagamentoDisponivel } = extrato.dados;
 
   return (
     <>
@@ -466,6 +491,16 @@ function Extrato({
             </div>
           ))}
         </dl>
+        {equipe && (
+          <MensalidadeAutomatica
+            alunoId={aluno.id}
+            mensalidade={mensalidade}
+            aoMudar={() => {
+              recarregar();
+              aoMudar?.();
+            }}
+          />
+        )}
       </Cartao>
 
       {erro && (
@@ -505,6 +540,7 @@ function Extrato({
                         <p className="text-text font-medium">{c.descricao}</p>
                         <Etiqueta>{NOME_TIPO_COBRANCA[c.tipo]}</Etiqueta>
                         <Etiqueta tom={TOM_SITUACAO[c.situacao]}>{NOME_SITUACAO[c.situacao]}</Etiqueta>
+                        {equipe && c.automatica && <Etiqueta tom="info">Automática</Etiqueta>}
                       </div>
                       <p className="text-text-muted mt-1 text-xs">
                         {c.pagoEm
@@ -517,11 +553,34 @@ function Extrato({
                         </p>
                       )}
                       {equipe && c.observacao && <p className="text-text-secondary mt-1 text-xs">Anotação: {c.observacao}</p>}
+                      <AvisoDePagamento cobranca={c} equipe={equipe} />
                     </div>
                     <p className={`text-base font-semibold whitespace-nowrap ${c.situacao === "atrasada" ? "text-danger" : "text-text"}`}>
                       {reais(c.valorPagoCentavos ?? c.valorCentavos)}
                     </p>
                   </div>
+
+                  {!equipe &&
+                    pagamentoDisponivel &&
+                    (c.situacao === "pendente" || c.situacao === "atrasada") &&
+                    acaoAberta?.id !== c.id && (
+                      <div className="mt-3">
+                        <Botao onClick={() => setAcaoAberta({ id: c.id, modo: "pix" })}>
+                          <QrCode className="size-4" aria-hidden />
+                          {c.pagamentoInformado ? "Ver dados do pagamento" : "Pagar"}
+                        </Botao>
+                      </div>
+                    )}
+                  {acaoAberta?.id === c.id && acaoAberta.modo === "pix" && (
+                    <PainelPagar
+                      cobranca={c}
+                      aoFechar={() => setAcaoAberta(null)}
+                      aoAvisar={() => {
+                        setAcaoAberta(null);
+                        recarregar();
+                      }}
+                    />
+                  )}
 
                   {!equipe && c.situacao === "paga" && (
                     <div className="mt-3">
@@ -598,6 +657,7 @@ function BotaoRecibo({
   aoFalhar: (mensagem: string) => void;
 }) {
   const [gerando, setGerando] = useState(false);
+  const { usuario } = useSessao();
   return (
     <Botao
       variante="secundario"
@@ -608,6 +668,7 @@ function BotaoRecibo({
           await baixarRecibo({
             cobranca,
             aluno: { nome: aluno.nome, matricula: aluno.matricula, turma: aluno.turma?.nome ?? null },
+            escola: usuario?.escola?.nome,
           });
         } catch {
           aoFalhar("Não foi possível gerar o recibo. Tente de novo.");

@@ -25,8 +25,8 @@ const RECURSOS = [
 ];
 
 // Contato comercial: dá para trocar pelas variáveis de ambiente sem mexer no código.
-const WHATSAPP = (process.env.NEXT_PUBLIC_CONTATO_WHATSAPP ?? "5571999991778").replace(/\D/g, "");
-const EMAIL = process.env.NEXT_PUBLIC_CONTATO_EMAIL ?? "santiagotoso@gmail.com";
+const WHATSAPP = (process.env.NEXT_PUBLIC_CONTATO_WHATSAPP?.trim() || "5571999991778").replace(/\D/g, "");
+const EMAIL = process.env.NEXT_PUBLIC_CONTATO_EMAIL?.trim() || "santiagotoso@gmail.com";
 const MENSAGEM = "Olá! Vi o MuralFlow e quero saber mais para a minha escola.";
 const LINK_WHATSAPP = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(MENSAGEM)}`;
 const LINK_EMAIL = `mailto:${EMAIL}?subject=${encodeURIComponent("Quero conhecer o MuralFlow")}&body=${encodeURIComponent(MENSAGEM)}`;

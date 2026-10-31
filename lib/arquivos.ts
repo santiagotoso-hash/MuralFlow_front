@@ -40,6 +40,8 @@ export const valorParaPlanilha = (centavos: number) => (centavos / 100).toFixed(
 export interface DadosRecibo {
   cobranca: Cobranca;
   aluno: { nome: string; matricula: string | null; turma: string | null };
+  /** Nome da escola de quem está logado (multiescola). Vazio = NOME_DA_ESCOLA. */
+  escola?: string | null;
 }
 
 /** Número curto do recibo, a partir do id da cobrança. */
@@ -78,7 +80,7 @@ export async function baixarRecibo(dados: DadosRecibo) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text(limpo(NOME_DA_ESCOLA), esquerda, y);
+  doc.text(limpo(dados.escola || NOME_DA_ESCOLA), esquerda, y);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(100);

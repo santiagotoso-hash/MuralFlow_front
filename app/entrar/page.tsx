@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
 import { Botao, Campo, Cartao, Erro } from "@/components/ui";
+import { ErroApi } from "@/lib/api";
 import { inicioDe } from "@/lib/formatar";
+
+type OpcaoEscola = { slug: string; nome: string };
 
 export default function Entrar() {
   const { usuario, entrar } = useSessao();
@@ -14,6 +17,9 @@ export default function Entrar() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  /** O mesmo e-mail tem conta em mais de uma escola: a pessoa escolhe. */
+  const [escolas, setEscolas] = useState<OpcaoEscola[] | null>(null);
+  const [escola, setEscola] = useState("");
 
   // Já logado (sessão restaurada): direto para a primeira tela do papel.
   useEffect(() => {
@@ -25,9 +31,16 @@ export default function Entrar() {
     setErro(null);
     setEnviando(true);
     try {
-      await entrar(email, senha);
+      await entrar(email, senha, escolas ? escola : undefined);
     } catch (err) {
-      setErro((err as Error).message);
+      const lista = err instanceof ErroApi && err.status === 409 ? (err.dados?.escolas as OpcaoEscola[] | undefined) : undefined;
+      if (lista?.length) {
+        setEscolas(lista);
+        setEscola(lista[0].slug);
+        setErro(null);
+      } else {
+        setErro((err as Error).message);
+      }
       setEnviando(false);
     }
   }
@@ -47,7 +60,10 @@ export default function Entrar() {
             autoComplete="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEscolas(null);
+            }}
           />
           <Campo
             rotulo="Senha"
@@ -57,6 +73,21 @@ export default function Entrar() {
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
           />
+          {escolas && (
+            <Campo
+              tipo="select"
+              rotulo="Escola"
+              ajuda="Este e-mail tem conta em mais de uma escola. Escolha em qual quer entrar."
+              value={escola}
+              onChange={(e) => setEscola(e.target.value)}
+            >
+              {escolas.map((op) => (
+                <option key={op.slug} value={op.slug}>
+                  {op.nome}
+                </option>
+              ))}
+            </Campo>
+          )}
           {erro && <Erro mensagem={erro} />}
           <Botao type="submit" carregando={enviando} className="w-full">
             Entrar
