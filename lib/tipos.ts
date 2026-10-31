@@ -33,6 +33,8 @@ export interface Usuario {
   anotacoes?: string | null;
   filhos?: Aluno[];
   turmas?: Turma[];
+  /** A escola do usuário (multiescola). Vem em /usuarios/eu. */
+  escola?: { id: string; nome: string; slug: string } | null;
 }
 
 export interface Turma {
@@ -104,6 +106,10 @@ export interface Cobranca {
   valorPagoCentavos: number | null;
   formaPagamento: FormaPagamento | null;
   situacao: SituacaoCobranca;
+  /** Mensalidade lançada sozinha pelo sistema (mensalidade automática). */
+  automatica: boolean;
+  /** A família avisou que pagou; some quando a escola dá baixa. */
+  pagamentoInformado: { em: string; por: string | null; observacao: string | null } | null;
   /** Só o financeiro e a direção recebem. */
   observacao?: string | null;
   lancadaPor?: string | null;
@@ -114,7 +120,19 @@ export interface ExtratoAluno {
   hoje: string;
   aluno: { id: string; nome: string; matricula: string | null; turma: { id: string; nome: string } | null };
   totais: { aVencerCentavos: number; atrasadoCentavos: number; pagoCentavos: number };
+  /** Mensalidade automática do aluno. null = desligada. */
+  mensalidade: { valorCentavos: number; dia: number } | null;
+  /** A escola cadastrou PIX ou conta: a família vê o botão "Pagar". */
+  pagamentoDisponivel: boolean;
   cobrancas: Cobranca[];
+}
+
+/** GET /financeiro/cobrancas/:id/pagar */
+export interface ComoPagar {
+  cobranca: Cobranca;
+  pix: { chave: string; beneficiario: string; cidade: string; identificador: string; copiaECola: string } | null;
+  /** Dados para transferência, uma linha cada. */
+  transferencia: string[] | null;
 }
 
 /** GET /financeiro/resumo */
@@ -125,6 +143,8 @@ export interface ResumoFinanceiro {
     atrasadoCentavos: number;
     recebidoNoMesCentavos: number;
     alunosEmAtraso: number;
+    /** Cobranças que a família disse ter pago e o financeiro ainda não conferiu. */
+    pagamentosInformados: number;
     /** Despesas da escola pagas neste mês (não muda com o filtro de turma). */
     despesasPagasNoMesCentavos: number;
   };
@@ -139,6 +159,7 @@ export interface ResumoFinanceiro {
     atrasadoCentavos: number;
     pagoCentavos: number;
     proximoVencimento: string | null;
+    pagamentosInformados: number;
   }[];
 }
 

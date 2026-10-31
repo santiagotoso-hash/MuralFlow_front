@@ -15,7 +15,8 @@ interface Sessao {
   usuario: Usuario | null;
   /** true até sabermos se há sessão salva (evita piscar a tela de login). */
   carregando: boolean;
-  entrar: (email: string, senha: string) => Promise<Usuario>;
+  /** `escola` (slug): só quando o mesmo e-mail tem conta em mais de uma escola. */
+  entrar: (email: string, senha: string, escola?: string) => Promise<Usuario>;
   sair: () => void;
   recarregarUsuario: () => Promise<void>;
 }
@@ -56,10 +57,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     return () => window.removeEventListener(EVENTO_SESSAO_EXPIRADA, expirou);
   }, [recarregarUsuario]);
 
-  const entrar = useCallback(async (email: string, senha: string) => {
+  const entrar = useCallback(async (email: string, senha: string, escola?: string) => {
     const { token } = await api<{ token: string }>("/auth/entrar", {
       method: "POST",
-      body: { email, senha },
+      body: { email, senha, escola },
     });
     salvarToken(token);
     const eu = await api<Usuario>("/usuarios/eu");

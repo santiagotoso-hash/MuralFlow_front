@@ -109,6 +109,11 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
       <aside className="bg-surface border-border sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r p-4 lg:flex">
         <div className="px-2 py-2">
           <Logo href={inicioDe(usuario.papel)} />
+          {usuario.escola && (
+            <p className="text-text-muted mt-2 truncate text-xs font-medium" title={usuario.escola.nome}>
+              {usuario.escola.nome}
+            </p>
+          )}
         </div>
         <nav className="mt-6 flex-1 space-y-1" aria-label="Menu principal">
           {itens.map(({ href, rotulo, icone: Icone }) => (

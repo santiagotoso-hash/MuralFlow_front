@@ -24,6 +24,8 @@ export class ErroApi extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** O corpo da resposta de erro (ex.: as escolas do login com 409). */
+    readonly dados?: Record<string, unknown> | null,
   ) {
     super(message);
   }
@@ -64,7 +66,7 @@ export async function api<T>(
     const msg = Array.isArray(corpo?.message)
       ? corpo.message[0]
       : (corpo?.message ?? "Algo deu errado. Tente de novo.");
-    throw new ErroApi(msg, resposta.status);
+    throw new ErroApi(msg, resposta.status, corpo);
   }
   if (resposta.status === 204) return undefined as T;
   return resposta.json() as Promise<T>;
