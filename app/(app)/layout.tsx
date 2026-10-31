@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Building2,
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
@@ -24,7 +25,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
+import TemaDaEscola from "@/components/TemaDaEscola";
 import { Avatar, Carregando } from "@/components/ui";
+import { urlDoLogo } from "@/lib/escola";
 import { inicioDe, NOME_PAPEL } from "@/lib/formatar";
 import type { Papel } from "@/lib/tipos";
 
@@ -35,10 +38,19 @@ interface ItemMenu {
   papeis?: Papel[];
 }
 
-/** O financeiro só tem estas telas (a API bloqueia o resto). */
-const TELAS_DO_FINANCEIRO = ["/financeiro", "/alunos", "/declaracoes", "/perfil"];
+/** Papéis restritos só têm estas telas (a API bloqueia o resto). */
+const TELAS_PERMITIDAS: Partial<Record<Papel, string[]>> = {
+  financeiro: ["/financeiro", "/alunos", "/declaracoes", "/perfil"],
+  superadmin: ["/plataforma", "/perfil"],
+};
 
 function menu(papel: Papel): ItemMenu[] {
+  if (papel === "superadmin") {
+    return [
+      { href: "/plataforma", rotulo: "Escolas", icone: Building2 },
+      { href: "/perfil", rotulo: "Perfil", icone: UserRound },
+    ];
+  }
   if (papel === "financeiro") {
     return [
       { href: "/financeiro", rotulo: "Financeiro", icone: Wallet },
@@ -81,11 +93,11 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
     if (!carregando && !usuario) router.replace("/entrar");
   }, [carregando, usuario, router]);
 
-  const foraDaArea =
-    usuario?.papel === "financeiro" && !TELAS_DO_FINANCEIRO.some((t) => pathname === t || pathname.startsWith(`${t}/`));
+  const permitidas = usuario ? TELAS_PERMITIDAS[usuario.papel] : undefined;
+  const foraDaArea = !!permitidas && !permitidas.some((t) => pathname === t || pathname.startsWith(`${t}/`));
   useEffect(() => {
-    if (foraDaArea) router.replace("/financeiro");
-  }, [foraDaArea, router]);
+    if (foraDaArea && usuario) router.replace(inicioDe(usuario.papel));
+  }, [foraDaArea, usuario, router]);
 
   if (!usuario || foraDaArea) {
     return (
@@ -96,6 +108,8 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
   }
 
   const itens = menu(usuario.papel);
+  const escola = usuario.papel === "superadmin" ? null : usuario.escola;
+  const logoDaEscola = urlDoLogo(escola?.logo);
   const ativo = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Celular: 4 atalhos na barra inferior; o resto (menos Gestão e Perfil,
   // que ficam no topo) vai para "Mais".
@@ -105,14 +119,21 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-dvh lg:flex">
+      <TemaDaEscola cor={escola?.cor} />
       {/* ── Barra lateral (desktop) ── */}
       <aside className="bg-surface border-border sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r p-4 lg:flex">
         <div className="px-2 py-2">
           <Logo href={inicioDe(usuario.papel)} />
-          {usuario.escola && (
-            <p className="text-text-muted mt-2 truncate text-xs font-medium" title={usuario.escola.nome}>
-              {usuario.escola.nome}
-            </p>
+          {escola && (
+            <div className="mt-3">
+              {logoDaEscola && (
+                // eslint-disable-next-line @next/next/no-img-element -- imagem da API, já otimizada no upload.
+                <img src={logoDaEscola} alt="" className="mb-1.5 h-11 max-w-full rounded-md bg-white object-contain object-left p-1" />
+              )}
+              <p className="text-text-muted truncate text-xs font-medium" title={escola.nome}>
+                {escola.nome}
+              </p>
+            </div>
           )}
         </div>
         <nav className="mt-6 flex-1 space-y-1" aria-label="Menu principal">
@@ -152,7 +173,13 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
 
       {/* ── Topo (celular) ── */}
       <header className="bg-surface border-border sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 lg:hidden">
-        <Logo href={inicioDe(usuario.papel)} />
+        <div className="flex min-w-0 items-center gap-3">
+          <Logo href={inicioDe(usuario.papel)} />
+          {logoDaEscola && (
+            // eslint-disable-next-line @next/next/no-img-element -- imagem da API, já otimizada no upload.
+            <img src={logoDaEscola} alt={escola?.nome ?? ""} className="h-8 max-w-20 rounded-md bg-white object-contain p-0.5" />
+          )}
+        </div>
         {/* Gestão e Perfil não cabem na barra inferior: ficam aqui. */}
         <div className="flex items-center gap-1">
           {usuario.papel === "admin" && (

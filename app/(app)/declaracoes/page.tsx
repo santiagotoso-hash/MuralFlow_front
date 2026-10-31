@@ -50,7 +50,7 @@ export default function PaginaDeclaracoes() {
       const d = await api<Declaracao>("/declaracoes", { method: "POST", body: { alunoId: escolhido, tipo } });
       setUltima(d);
       setVersao((v) => v + 1);
-      await baixarDeclaracao(d, urlDeVerificacao(d.codigo));
+      await baixarDeclaracao(d, urlDeVerificacao(d.codigo), usuario?.escola?.logo);
     } catch (err) {
       setErro((err as Error).message);
     } finally {
@@ -144,6 +144,7 @@ export default function PaginaDeclaracoes() {
 /** As emitidas mais recentes (direção), com a opção de baixar de novo. */
 function Emitidas({ versao }: { versao: number }) {
   const lista = useApi<Declaracao[]>(`/declaracoes?v=${versao}`);
+  const logo = useSessao().usuario?.escola?.logo;
   const [erro, setErro] = useState<string | null>(null);
   return (
     <section>
@@ -182,7 +183,7 @@ function Emitidas({ versao }: { versao: number }) {
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
-                      onClick={() => baixarDeclaracao(d, urlDeVerificacao(d.codigo)).catch(() => setErro("Não foi possível gerar o PDF."))}
+                      onClick={() => baixarDeclaracao(d, urlDeVerificacao(d.codigo), logo).catch(() => setErro("Não foi possível gerar o PDF."))}
                       className="text-primary cursor-pointer text-sm font-medium whitespace-nowrap hover:underline"
                     >
                       Baixar de novo

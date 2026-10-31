@@ -669,6 +669,7 @@ function BotaoRecibo({
             cobranca,
             aluno: { nome: aluno.nome, matricula: aluno.matricula, turma: aluno.turma?.nome ?? null },
             escola: usuario?.escola?.nome,
+            logo: usuario?.escola?.logo,
           });
         } catch {
           aoFalhar("Não foi possível gerar o recibo. Tente de novo.");

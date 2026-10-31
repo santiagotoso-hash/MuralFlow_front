@@ -6,14 +6,16 @@ import { useSessao } from "@/components/AuthProvider";
 import { type PedidoConfirmacao, useConfirmar } from "@/components/Confirmacao";
 import { Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta } from "@/components/ui";
 import { api } from "@/lib/api";
-import { NOME_PAPEL, NOME_TURNO } from "@/lib/formatar";
+import { NOME_PAPEL, NOME_TURNO, PAPEIS_DA_ESCOLA } from "@/lib/formatar";
 import type { Aluno, Papel, Turma, Turno, Usuario } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
+import { AbaEscola } from "./escola";
 
 const ABAS = [
   { id: "usuarios", rotulo: "Usuários" },
   { id: "turmas", rotulo: "Turmas" },
   { id: "alunos", rotulo: "Alunos" },
+  { id: "escola", rotulo: "Escola" },
 ] as const;
 type Aba = (typeof ABAS)[number]["id"];
 
@@ -25,7 +27,7 @@ export default function Gestao() {
 
   return (
     <>
-      <Cabecalho titulo="Gestão escolar" descricao="Cadastre famílias, professores, turmas e alunos." />
+      <Cabecalho titulo="Gestão escolar" descricao="Cadastre famílias, professores, turmas e alunos, e mantenha os dados da escola." />
       <div role="tablist" aria-label="Seções da gestão" className="border-border mb-6 flex gap-1 border-b">
         {ABAS.map((a) => (
           <button
@@ -45,6 +47,7 @@ export default function Gestao() {
       {aba === "usuarios" && <AbaUsuarios />}
       {aba === "turmas" && <AbaTurmas />}
       {aba === "alunos" && <AbaAlunos />}
+      {aba === "escola" && <AbaEscola />}
     </>
   );
 }
@@ -198,7 +201,7 @@ function AbaUsuarios() {
           <Campo rotulo="Nome completo" required value={form.nome} onChange={set("nome")} />
           <Campo rotulo="E-mail" type="email" required value={form.email} onChange={set("email")} />
           <Campo tipo="select" rotulo="Papel" value={form.papel} onChange={set("papel")}>
-            {Object.entries(NOME_PAPEL).map(([v, n]) => (
+            {PAPEIS_DA_ESCOLA.map((v) => [v, NOME_PAPEL[v]] as const).map(([v, n]) => (
               <option key={v} value={v}>
                 {n}
               </option>
