@@ -25,6 +25,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
+import { BotaoTema } from "@/components/Tema";
 import TemaDaEscola from "@/components/TemaDaEscola";
 import { Avatar, Carregando } from "@/components/ui";
 import { urlDoLogo } from "@/lib/escola";
@@ -159,6 +160,7 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
             <p className="text-text truncate text-sm font-medium">{usuario.nome}</p>
             <p className="text-text-muted text-xs">{NOME_PAPEL[usuario.papel]}</p>
           </div>
+          <BotaoTema className="p-1.5" />
           <button
             type="button"
             onClick={sair}
@@ -182,6 +184,7 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
         </div>
         {/* Gestão e Perfil não cabem na barra inferior: ficam aqui. */}
         <div className="flex items-center gap-1">
+          <BotaoTema />
           {usuario.papel === "admin" && (
             <Link href="/gestao" aria-label="Gestão" className="text-text-muted hover:text-text rounded-lg p-2">
               <Settings className="size-5" />

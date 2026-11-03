@@ -4,6 +4,7 @@ import { Check, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
+import { EscolhaDeTema } from "@/components/Tema";
 import { Avatar, Botao, Cabecalho, Campo, Cartao, Erro } from "@/components/ui";
 import { api } from "@/lib/api";
 import { NOME_PAPEL } from "@/lib/formatar";
@@ -109,6 +110,13 @@ export default function Perfil() {
             )}
           </div>
         </form>
+      </Cartao>
+      <Cartao className="mt-6 max-w-xl p-6">
+        <h2 className="text-text font-semibold">Aparência</h2>
+        <p className="text-text-secondary mt-1 mb-4 text-sm">
+          Vale só neste aparelho. “Automático” segue o modo do celular ou do computador.
+        </p>
+        <EscolhaDeTema />
       </Cartao>
       <Botao variante="perigo" onClick={sair} className="mt-6">
         <LogOut className="size-4" aria-hidden />

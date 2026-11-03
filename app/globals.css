@@ -97,6 +97,19 @@
   --color-info-subtle:      #0F1E3A;
 }
 
+/* Campos de data, listas e barras de rolagem do navegador no mesmo modo. */
+:root {
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-text);
