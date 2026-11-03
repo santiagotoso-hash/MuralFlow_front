@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
+import ImagemProtegida from "@/components/ImagemProtegida";
 import { Botao, Cabecalho, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
 import { dataHora, NOME_CATEGORIA } from "@/lib/formatar";
@@ -127,6 +128,9 @@ export default function Comunicados() {
                 </span>
               </div>
               <h2 className="text-text mt-3 text-lg font-semibold">{c.titulo}</h2>
+              {c.imagem && (
+                <ImagemProtegida caminho={c.imagem} alt={c.titulo} className="mt-3 max-h-72 max-w-full rounded-xl object-cover" />
+              )}
               <p className="text-text-secondary mt-2 text-sm whitespace-pre-line">{c.conteudo}</p>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

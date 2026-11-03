@@ -59,6 +59,12 @@ export interface Aluno {
   medicamentos: string | null;
   observacoesSaude: string | null;
   saudeAtualizadaEm: string | null;
+  /** Foto posta pelos pais (null = sem foto). A imagem vem de /alunos/:id/foto. */
+  fotoAtualizadaEm: string | null;
+  /** Os pais autorizaram avisar a turma no aniversário… */
+  avisarAniversarioTurma: boolean;
+  /** …e mostrar a foto nesse aviso. */
+  fotoNoAviso: boolean;
 }
 
 export interface Comunicado {
@@ -73,6 +79,8 @@ export interface Comunicado {
   ciente?: boolean;
   totalCiencias?: number;
   totalDestinatarios?: number;
+  /** Aviso de aniversário com foto autorizada: caminho da imagem na API. */
+  imagem?: string | null;
 }
 
 export interface Evento {

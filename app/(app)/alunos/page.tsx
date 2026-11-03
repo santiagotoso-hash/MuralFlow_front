@@ -6,11 +6,12 @@ import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
 import { BotoesContato } from "@/components/contato";
-import { Avatar, Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
+import { Botao, Cabecalho, Campo, Carregando, Cartao, Erro, Etiqueta, Vazio } from "@/components/ui";
 import { api } from "@/lib/api";
 import { aniversarioHoje, dataAniversario, dataBr, NOME_TURNO, reais } from "@/lib/formatar";
 import type { Aluno, PendenciaAluno, Turma } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
+import { FotoDoAluno, FotoEAniversario } from "./foto";
 
 function idade(dataNascimento: string | null) {
   if (!dataNascimento) return null;
@@ -134,7 +135,7 @@ function CartaoAluno({
   return (
     <Cartao className={`p-5 ${pendencia ? "border-danger! bg-danger-subtle!" : ""}`}>
       <div className="flex items-center gap-3">
-        <Avatar nome={a.nome} />
+        <FotoDoAluno aluno={a} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="text-text truncate font-semibold">{a.nome}</p>
@@ -187,7 +188,7 @@ function CartaoAluno({
             max={new Date().toISOString().slice(0, 10)}
             value={data}
             onChange={(e) => setData(e.target.value)}
-            ajuda="No dia do aniversário, a escola manda uma mensagem de parabéns e avisa os professores."
+            ajuda="No dia do aniversário, a escola manda uma mensagem de parabéns e avisa os professores (e a turma, se vocês autorizarem)."
           />
           {erro && <Erro mensagem={erro} />}
           <div className="flex gap-2">
@@ -238,6 +239,7 @@ function CartaoAluno({
           </span>
         </Link>
       )}
+      {familia && <FotoEAniversario aluno={a} aoSalvar={aoSalvar} />}
       {!familia && a.responsaveis && (
         <ul className="border-border mt-4 space-y-2 border-t pt-3">
           {a.responsaveis.map((r) => (
