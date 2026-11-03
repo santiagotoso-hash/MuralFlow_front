@@ -4,6 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Logo from "@/components/Logo";
+import { BotaoTema } from "@/components/Tema";
 import { Botao, Campo, Cartao } from "@/components/ui";
 
 /** Página pública: digitar o código impresso numa declaração. */
@@ -13,7 +14,10 @@ export default function Verificar() {
   const limpo = codigo.toUpperCase().replace(/[^0-9A-Z]/g, "");
 
   return (
-    <main className="flex min-h-dvh flex-col items-center px-4 py-12">
+    <main className="relative flex min-h-dvh flex-col items-center px-4 py-12">
+      <div className="absolute top-3 right-3">
+        <BotaoTema />
+      </div>
       <Logo />
       <Cartao className="mt-8 w-full max-w-md p-6">
         <div className="mb-4 flex items-center gap-3">

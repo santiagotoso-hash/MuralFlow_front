@@ -4,6 +4,7 @@ import { ShieldAlert, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Logo from "@/components/Logo";
+import { BotaoTema } from "@/components/Tema";
 import { Cartao, Carregando } from "@/components/ui";
 import { type Declaracao, formatarCodigo, localEData, NOME_TIPO_DECLARACAO, textoDaDeclaracao } from "@/lib/declaracoes";
 import { useApi } from "@/lib/use-api";
@@ -18,7 +19,10 @@ export default function ResultadoDaVerificacao() {
   const declaracao = useApi<Declaracao>(limpo ? `/declaracoes/verificar/${limpo}` : null);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center px-4 py-12">
+    <main className="relative flex min-h-dvh flex-col items-center px-4 py-12">
+      <div className="absolute top-3 right-3">
+        <BotaoTema />
+      </div>
       <Logo />
       <Cartao className="mt-8 w-full max-w-2xl p-6">
         {declaracao.carregando && <Carregando texto="Verificando…" />}

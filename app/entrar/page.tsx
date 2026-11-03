@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
+import { BotaoTema } from "@/components/Tema";
 import { Botao, Campo, Cartao, Erro } from "@/components/ui";
 import { ErroApi } from "@/lib/api";
 import { inicioDe } from "@/lib/formatar";
@@ -46,7 +47,10 @@ export default function Entrar() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+      <div className="absolute top-3 right-3">
+        <BotaoTema />
+      </div>
       <Logo />
       <Cartao className="mt-8 w-full max-w-sm p-6">
         <h1 className="text-text text-xl font-bold">Entrar</h1>
