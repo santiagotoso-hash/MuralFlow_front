@@ -3,6 +3,7 @@ import Link from "next/link";
 import BotaoApresentacao from "@/components/BotaoApresentacao";
 import { BotaoTema } from "@/components/Tema";
 import Logo from "@/components/Logo";
+import LogoLitocode from "@/components/LogoLitocode";
 
 const RECURSOS = [
   {
@@ -154,8 +155,12 @@ export default function Inicio() {
         </section>
       </main>
 
-      <footer className="border-border text-text-muted border-t py-8 text-center text-sm">
-        © {new Date().getFullYear()} PassaRecado
+      <footer className="border-border text-text-muted flex flex-col items-center gap-5 border-t py-8 text-center text-sm">
+        <div className="flex flex-col items-center gap-2.5 text-xs">
+          <span>Desenvolvido por</span>
+          <LogoLitocode />
+        </div>
+        <p>© {new Date().getFullYear()} PassaRecado</p>
       </footer>
     </div>
   );
