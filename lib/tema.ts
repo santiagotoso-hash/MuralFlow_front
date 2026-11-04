@@ -8,8 +8,8 @@
  */
 export type Tema = "claro" | "escuro" | "sistema";
 
-export const CHAVE_DO_TEMA = "muralflow:tema";
-const EVENTO = "muralflow:tema";
+export const CHAVE_DO_TEMA = "passarecado:tema";
+const EVENTO = "passarecado:tema";
 
 const prefereEscuro = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;

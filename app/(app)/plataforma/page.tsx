@@ -17,7 +17,7 @@ export default function Plataforma() {
   const escolas = useApi<EscolaNaLista[]>("/plataforma/escolas");
   const [criando, setCriando] = useState(false);
 
-  if (usuario?.papel !== "superadmin") return <Erro mensagem="Área do superadmin do MuralFlow." />;
+  if (usuario?.papel !== "superadmin") return <Erro mensagem="Área do superadmin do PassaRecado." />;
 
   return (
     <>

@@ -16,12 +16,12 @@
   --color-text-secondary:   #44514D;
   --color-text-muted:       #63716C;
 
-  /* Verde-azulado da marca. --color-primary é para texto/ícone/borda;
-     --color-primary-solid é o fundo de botões com texto branco (5.4:1). */
-  --color-primary:          #0F766E;
-  --color-primary-subtle:   #E6F4F1;
-  --color-primary-solid:       #0F766E;
-  --color-primary-solid-hover: #115E59;
+  /* Verde-azulado da marca (o fundo do logo). --color-primary é para texto/ícone/borda;
+     --color-primary-solid é o fundo de botões com texto branco (5.2:1). */
+  --color-primary:          #0D7888;
+  --color-primary-subtle:   #E5F3F5;
+  --color-primary-solid:       #0D7888;
+  --color-primary-solid-hover: #0A6170;
 
   /* Amarelo "lápis" para destaques (nunca com texto branco em cima). */
   --color-accent:           #B45309;

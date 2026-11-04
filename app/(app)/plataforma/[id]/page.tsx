@@ -14,7 +14,7 @@ import type { EscolaCompleta } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 import { MarcaDaEscola } from "../componentes";
 
-const COR_PADRAO = "#0F766E";
+const COR_PADRAO = "#0D7888";
 const LOGO_MAXIMO = 300 * 1024;
 
 /** Superadmin: tudo de uma escola (dados, PIX, conta, logo, cor e situação). */
@@ -23,7 +23,7 @@ export default function EditarEscola() {
   const { id } = useParams<{ id: string }>();
   const escola = useApi<EscolaCompleta>(`/plataforma/escolas/${id}`);
 
-  if (usuario?.papel !== "superadmin") return <Erro mensagem="Área do superadmin do MuralFlow." />;
+  if (usuario?.papel !== "superadmin") return <Erro mensagem="Área do superadmin do PassaRecado." />;
   return (
     <>
       <Link href="/plataforma" className="text-text-secondary hover:text-text mb-4 inline-flex items-center gap-1.5 text-sm font-medium">
@@ -354,7 +354,7 @@ function Cor({ cor, aoMudar }: { cor: string | null; aoMudar: (cor: string | nul
         </span>
         {cor && (
           <Botao type="button" variante="fantasma" onClick={() => aoMudar(null)}>
-            Voltar à cor do MuralFlow
+            Voltar à cor do PassaRecado
           </Botao>
         )}
       </div>
@@ -363,7 +363,7 @@ function Cor({ cor, aoMudar }: { cor: string | null; aoMudar: (cor: string | nul
           Cor clara demais: o texto branco dos botões fica difícil de ler. Prefira um tom mais escuro.
         </p>
       )}
-      {!cor && <p className="text-text-muted mt-2 text-xs">Sem cor própria: a escola usa a cor do MuralFlow.</p>}
+      {!cor && <p className="text-text-muted mt-2 text-xs">Sem cor própria: a escola usa a cor do PassaRecado.</p>}
       <p className="text-text-muted mt-2 flex items-center gap-1 text-xs">
         <Landmark className="size-3" aria-hidden />A cor vale para todos da escola assim que você salvar.
       </p>

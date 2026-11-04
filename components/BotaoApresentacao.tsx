@@ -16,19 +16,20 @@ export default function BotaoApresentacao({ className = "" }: { className?: stri
 
   return (
     <>
-      <Botao type="button" variante="secundario" onClick={abrir} className={className}>
+      {/* No celular só o ícone (o topo não comporta logo, tema, Apresentação e Entrar). */}
+      <Botao type="button" variante="secundario" onClick={abrir} aria-label="Apresentação" className={`px-3 sm:px-4 ${className}`}>
         <Play className="size-4" aria-hidden />
-        Apresentação
+        <span className="hidden sm:inline">Apresentação</span>
       </Botao>
       <dialog
         ref={dialogo}
-        aria-label="Apresentação do MuralFlow"
+        aria-label="Apresentação do PassaRecado"
         onClose={() => video.current?.pause()}
         onClick={(e) => e.target === e.currentTarget && dialogo.current?.close()}
         className="bg-surface border-border m-auto w-[calc(100%-2rem)] max-w-4xl rounded-xl border p-0 shadow-xl backdrop:bg-black/70"
       >
         <div className="flex items-center justify-between px-4 py-2">
-          <h2 className="text-text text-sm font-semibold">Apresentação do MuralFlow</h2>
+          <h2 className="text-text text-sm font-semibold">Apresentação do PassaRecado</h2>
           <Botao variante="fantasma" aria-label="Fechar" className="px-2" onClick={() => dialogo.current?.close()}>
             <X className="size-4" aria-hidden />
           </Botao>

@@ -6,7 +6,7 @@ import { dataBr, NOME_FORMA_PAGAMENTO, NOME_TIPO_COBRANCA, reais } from "./forma
 import type { Cobranca } from "./tipos";
 
 /** Nome da escola nos recibos (cada instalação configura o seu). */
-export const NOME_DA_ESCOLA = process.env.NEXT_PUBLIC_ESCOLA_NOME?.trim() || "MuralFlow";
+export const NOME_DA_ESCOLA = process.env.NEXT_PUBLIC_ESCOLA_NOME?.trim() || "PassaRecado";
 
 function baixar(nome: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -165,7 +165,7 @@ export async function baixarRecibo(dados: DadosRecibo) {
   doc.setTextColor(100);
   doc.setFontSize(9);
   const emitido = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
-  doc.text(limpo(`Emitido em ${emitido} pelo MuralFlow.`), esquerda, y);
+  doc.text(limpo(`Emitido em ${emitido} pelo PassaRecado.`), esquerda, y);
   y += 5;
   doc.text("Este recibo comprova o pagamento registrado pela escola e não substitui nota fiscal.", esquerda, y);
 
@@ -246,7 +246,7 @@ export async function baixarDeclaracao(d: Declaracao, urlVerificacao: string, lo
   doc.text(`Código de verificação: ${formatarCodigo(d.codigo)}`, esquerda, base);
   doc.text(limpo(`Confira a autenticidade em ${urlVerificacao}`), esquerda, base + 5);
   const emitida = new Date(d.emitidaEm).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
-  doc.text(limpo(`Documento emitido eletronicamente pelo MuralFlow em ${emitida}.`), esquerda, base + 10);
+  doc.text(limpo(`Documento emitido eletronicamente pelo PassaRecado em ${emitida}.`), esquerda, base + 10);
 
   const primeiroNome = d.conteudo.aluno.nome.split(" ")[0].toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   baixar(`declaracao-${d.tipo}-${primeiroNome}-${d.codigo}.pdf`, doc.output("blob"));

@@ -4,6 +4,7 @@ import { Check, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import { useConfirmar } from "@/components/Confirmacao";
+import { InstalarNoPerfil } from "@/components/InstalarApp";
 import { EscolhaDeTema } from "@/components/Tema";
 import { Avatar, Botao, Cabecalho, Campo, Cartao, Erro } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -118,6 +119,7 @@ export default function Perfil() {
         </p>
         <EscolhaDeTema />
       </Cartao>
+      <InstalarNoPerfil />
       <Botao variante="perigo" onClick={sair} className="mt-6">
         <LogOut className="size-4" aria-hidden />
         Sair da conta

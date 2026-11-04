@@ -28,9 +28,9 @@ const RECURSOS = [
 // Contato comercial: dá para trocar pelas variáveis de ambiente sem mexer no código.
 const WHATSAPP = (process.env.NEXT_PUBLIC_CONTATO_WHATSAPP?.trim() || "5571999991778").replace(/\D/g, "");
 const EMAIL = process.env.NEXT_PUBLIC_CONTATO_EMAIL?.trim() || "santiagotoso@gmail.com";
-const MENSAGEM = "Olá! Vi o MuralFlow e quero saber mais para a minha escola.";
+const MENSAGEM = "Olá! Vi o PassaRecado e quero saber mais para a minha escola.";
 const LINK_WHATSAPP = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(MENSAGEM)}`;
-const LINK_EMAIL = `mailto:${EMAIL}?subject=${encodeURIComponent("Quero conhecer o MuralFlow")}&body=${encodeURIComponent(MENSAGEM)}`;
+const LINK_EMAIL = `mailto:${EMAIL}?subject=${encodeURIComponent("Quero conhecer o PassaRecado")}&body=${encodeURIComponent(MENSAGEM)}`;
 
 const PASSOS = [
   "A secretaria cadastra a família e envia o acesso.",
@@ -155,7 +155,7 @@ export default function Inicio() {
       </main>
 
       <footer className="border-border text-text-muted border-t py-8 text-center text-sm">
-        © {new Date().getFullYear()} MuralFlow
+        © {new Date().getFullYear()} PassaRecado
       </footer>
     </div>
   );

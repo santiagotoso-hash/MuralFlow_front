@@ -25,6 +25,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
+import { ConviteInstalar } from "@/components/InstalarApp";
 import { BotaoTema } from "@/components/Tema";
 import TemaDaEscola from "@/components/TemaDaEscola";
 import { Avatar, Carregando } from "@/components/ui";
@@ -197,6 +198,7 @@ export default function AreaLogada({ children }: { children: React.ReactNode }) 
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-6 pb-28 sm:px-6 lg:py-10">
+        <ConviteInstalar className="mb-6" />
         {children}
       </main>
 

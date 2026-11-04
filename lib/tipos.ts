@@ -384,7 +384,7 @@ export interface IdentidadeEscola {
   id: string;
   nome: string;
   slug: string;
-  /** "#RRGGBB" ou null (a cor do MuralFlow). */
+  /** "#RRGGBB" ou null (a cor do PassaRecado). */
   cor: string | null;
   /** Caminho da imagem na API ("/escolas/<id>/logo?v=..."), ou null. */
   logo: string | null;
