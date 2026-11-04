@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSessao } from "@/components/AuthProvider";
 import Logo from "@/components/Logo";
+import { ConviteInstalar } from "@/components/InstalarApp";
 import { BotaoTema } from "@/components/Tema";
 import { Botao, Campo, Cartao, Erro } from "@/components/ui";
 import { ErroApi } from "@/lib/api";
@@ -101,6 +102,7 @@ export default function Entrar() {
           Esqueceu a senha? Fale com a secretaria da escola.
         </p>
       </Cartao>
+      <ConviteInstalar className="mt-4 w-full max-w-sm" />
     </main>
   );
 }

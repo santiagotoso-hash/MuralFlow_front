@@ -63,7 +63,7 @@ export const NOME_PAPEL: Record<Papel, string> = {
   professor: "Professor(a)",
   responsavel: "Responsável",
   financeiro: "Financeiro",
-  superadmin: "Superadmin · MuralFlow",
+  superadmin: "Superadmin · PassaRecado",
 };
 
 /** Os papéis que a direção pode dar a alguém da escola (o superadmin fica de fora). */

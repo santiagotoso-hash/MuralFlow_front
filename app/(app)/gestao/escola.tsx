@@ -13,7 +13,7 @@ import { useApi } from "@/lib/use-api";
 /**
  * Direção: os dados institucionais da escola (saem nas declarações e no
  * recibo). PIX, conta, logo e cor aparecem só para conferir: quem muda é o
- * suporte do MuralFlow, para ninguém desviar os pagamentos das famílias.
+ * suporte do PassaRecado, para ninguém desviar os pagamentos das famílias.
  */
 export function AbaEscola() {
   const escola = useApi<EscolaCompleta>("/escola");
@@ -95,7 +95,7 @@ function FormEscola({ escola }: { escola: EscolaCompleta }) {
           Pagamento das famílias
         </h2>
         <p className="text-text-secondary mt-1 mb-4 text-sm">
-          É para onde vai o dinheiro do botão “Pagar”. Por segurança, só o suporte do MuralFlow muda estes dados: se precisar trocar,
+          É para onde vai o dinheiro do botão “Pagar”. Por segurança, só o suporte do PassaRecado muda estes dados: se precisar trocar,
           fale com a gente.
         </p>
         {!escola.pixChave && transferencia.length === 0 ? (
@@ -136,7 +136,7 @@ function FormEscola({ escola }: { escola: EscolaCompleta }) {
           <Palette className="text-primary size-4" aria-hidden />
           Visual
         </h2>
-        <p className="text-text-secondary mt-1 mb-4 text-sm">O logo e a cor da escola no app. Quem muda é o suporte do MuralFlow.</p>
+        <p className="text-text-secondary mt-1 mb-4 text-sm">O logo e a cor da escola no app. Quem muda é o suporte do PassaRecado.</p>
         <div className="flex flex-wrap items-center gap-6 text-sm">
           <div className="flex items-center gap-3">
             {logo ? (
@@ -148,7 +148,7 @@ function FormEscola({ escola }: { escola: EscolaCompleta }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="border-border size-6 rounded-md border" style={{ background: escola.cor ?? "var(--color-primary-solid)" }} />
-            <span className="text-text-secondary">{escola.cor ?? "Cor padrão do MuralFlow"}</span>
+            <span className="text-text-secondary">{escola.cor ?? "Cor padrão do PassaRecado"}</span>
           </div>
         </div>
       </Cartao>

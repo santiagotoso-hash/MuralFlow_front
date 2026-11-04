@@ -14,7 +14,7 @@ import type { Aniversario, Evento } from "@/lib/tipos";
 import { useApi } from "@/lib/use-api";
 
 type Visao = "calendario" | "lista";
-const CHAVE_VISAO = "escola-conecta:agenda-visao";
+const CHAVE_VISAO = "passarecado:agenda-visao";
 
 /** Na lista, só os aniversários que estão chegando (não o ano inteiro). */
 const DIAS_DE_ANIVERSARIOS = 30;

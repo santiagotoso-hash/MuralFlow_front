@@ -1,7 +1,7 @@
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
 
-const TOKEN_KEY = "escola-conecta:token";
+const TOKEN_KEY = "passarecado:token";
 
 export function lerToken(): string | null {
   try {
@@ -32,7 +32,7 @@ export class ErroApi extends Error {
 }
 
 /** Avisa o AuthProvider quando a sessão expira (401 em qualquer chamada). */
-export const EVENTO_SESSAO_EXPIRADA = "escola-conecta:sessao-expirada";
+export const EVENTO_SESSAO_EXPIRADA = "passarecado:sessao-expirada";
 
 export async function api<T>(
   caminho: string,
